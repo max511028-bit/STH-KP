@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор КП | Аутсорсинг персонала</title>
+    <!-- SheetJS для экспорта в Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            background: #eef2f7;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 0.25rem;
+        }
+        .sub {
+            color: #2c3e50;
+            border-left: 4px solid #3498db;
+            padding-left: 16px;
+            margin-bottom: 24px;
+        }
+        .toolbar {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-bottom: 20px;
+        }
+        .toolbar button {
+            background: #2c3e50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .toolbar button:hover {
+            background: #1a2a3a;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 20px 24px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            margin-bottom: 24px;
+        }
+        .card h2 {
+            margin-top: 0;
+            font-size: 1.3rem;
+        }
+        .param-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .param-row label {
+            width: 220px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .param-row input, .param-row select {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 12px;
+            font-size: 0.9rem;
+        }
+        .expense-item {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+        .expense-item input {
+            flex: 2;
+            padding: 6px 10px;
+            border-radius: 12px;
+            border: 1px solid #ccc;
+        }
+        .expense-item input[type="number"] {
+            flex: 1;
+        }
+        .expense-item button {
+            background: #e74c3c;
+            border: none;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        .add-expense {
+            background: #2ecc71;
+            border: none;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 30px;
+            cursor: pointer;
+            margin-top: 8px;
+            font-weight: bold;
+        }
+        .result-box {
+            background: #e8f4fd;
+            border-radius: 20px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+        .total-price {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        button.calc-btn {
+            background: #3498db;
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            font-size: 1rem;
+            border-radius: 40px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+            margin-top: 12px;
+        }
+        .offer-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 0.9rem;
+        }
+        .offer-table td, .offer-table th {
+            border-bottom: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .parsing-demo {
+            background: #fef9e6;
+            border-left: 4px solid #f39c12;
+            padding: 12px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+        }
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+                margin: 0;
+            }
+            .toolbar, .card:not(:has(.offer-table)), .calc-btn, .parsing-demo, .add-expense, .expense-item button, #parseSalaryBtn, details {
+                display: none;
+            }
+            .grid {
+                display: block;
+            }
+            .card {
+                box-shadow: none;
+                padding: 0;
+            }
+            .offer-table {
+                border: 1px solid #ccc;
+            }
+        }
+        @media (max-width: 900px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .note {
+            font-size: 0.75rem;
+            color: gray;
+            margin-top: 8px;
+        }
+        hr {
+            margin: 16px 0;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📦 Калькулятор коммерческого предложения</h1>
+    <div class="sub">Аутсорсинг персонала (грузчики, комплектовщики) — расчёт по внутренней модели</div>
+
+    <div class="toolbar">
+        <button id="exportPdfBtn">📄 Экспорт в PDF</button>
+        <button id="exportExcelBtn">📎 Экспорт в Excel</button>
+    </div>
+
+    <div class="grid">
+        <!-- ЛЕВАЯ КОЛОНКА: параметры -->
+        <div>
+            <div class="card">
+                <h2>⚙️ Параметры проекта</h2>
+                <div class="param-row"><label>👥 Заявка (сотрудников в сутки):</label><input type="number" id="staffPerDay" value="20" step="1"></div>
+                <div class="param-row"><label>📅 Плановый период (дней):</label><input type="number" id="periodDays" value="180" step="1"></div>
+                <div class="param-row"><label>⏱️ Часов в смену (нетто):</label><input type="number" id="hoursPerShift" value="11" step="1"></div>
+                <div class="param-row"><label>🗓️ Рабочих дней в неделю:</label><input type="number" id="workDaysWeek" value="5" step="1"></div>
+                <div class="param-row"><label>📆 Смен в месяц на сотрудника:</label><input type="number" id="shiftsPerMonth" value="22" step="1"></div>
+                <div class="param-row"><label>🔄 Коэф. обеспеченности (запас):</label><input type="number" id="coverageRatio" value="1.15" step="0.01"></div>
+                <div class="param-row"><label>💸 Желаемая маржинальность (%):</label><input type="number" id="targetMargin" value="8" step="1"></div>
+                <div class="param-row"><label>🧾 НДС (%):</label><input type="number" id="vatRate" value="22" step="1"></div>
+            </div>
+
+            <div class="card">
+                <h2>💰 Затраты на сотрудника (в час / в месяц)</h2>
+                <div class="param-row"><label>Зарплата на руки (вахта, руб/час):</label><input type="number" id="salaryHourlyVakhta" value="380" step="5"></div>
+                <div class="param-row"><label>Зарплата на руки (местный, руб/час):</label><input type="number" id="salaryHourlyLocal" value="370" step="5"></div>
+                <div class="param-row"><label>Проживание (за наш счёт, руб/сутки):</label><input type="number" id="housingCost" value="0" step="100"></div>
+                <div class="param-row"><label>Подбор персонала (руб/чел):</label><input type="number" id="recruitmentCost" value="20000" step="1000"></div>
+                <div class="param-row"><label>Компенсация билетов (руб/вахту):</label><input type="number" id="ticketComp" value="0" step="1000"></div>
+                <div class="param-row"><label>Проезд (руб/мес на чел):</label><input type="number" id="transportMonth" value="7000" step="500"></div>
+                <div class="param-row"><label>Питание (руб/сутки):</label><input type="number" id="foodCost" value="0" step="100"></div>
+                <div class="param-row"><label>ЛМК (медкнижка, руб/чел):</label><input type="number" id="lmkCost" value="3500" step="500"></div>
+                <div class="param-row"><label>СИЗ (руб/чел):</label><input type="number" id="sizCost" value="7500" step="500"></div>
+                <div class="param-row"><label>Удостоверения/обучение (руб/чел):</label><input type="number" id="certCost" value="0" step="1000"></div>
+            </div>
+
+            <div class="card">
+                <h2>👔 Управленческие и накладные расходы</h2>
+                <div class="param-row"><label>Бригадир (выделенный, руб/мес):</label><input type="number" id="brigadierMonth" value="90000" step="5000"></div>
+                <div class="param-row"><label>Руководство проекта (руб/мес):</label><input type="number" id="managementMonth" value="25000" step="5000"></div>
+                <div class="param-row"><label>Косвенные затраты (% от прямых):</label><input type="number" id="indirectPercent" value="2" step="0.5"></div>
+                <div class="param-row"><label>Аллокация (% от ФОТ):</label><input type="number" id="allocationPercent" value="3.9" step="0.1"></div>
+                <div class="param-row"><label>РСЗ (% от ФОТ):</label><input type="number" id="rszPercent" value="8.9" step="0.1"></div>
+                <div class="param-row"><label>Резерв на штрафы (% от выручки):</label><input type="number" id="penaltyPercent" value="2" step="0.5"></div>
+                <div class="param-row"><label>Агентская комиссия (% от выручки):</label><input type="number" id="agentPercent" value="0" step="0.5"></div>
+            </div>
+
+            <div class="card">
+                <h2>➕ Дополнительные статьи расходов (на 1 чел/час)</h2>
+                <div id="extraExpensesList"></div>
+                <button class="add-expense" id="addExpenseBtn">+ Добавить расход</button>
+                <div class="note">* Добавьте любые разовые или периодические затраты</div>
+            </div>
+        </div>
+
+        <!-- ПРАВАЯ КОЛОНКА: результаты -->
+        <div>
+            <div class="card">
+                <h2>📊 Результат расчёта</h2>
+                <button class="calc-btn" id="calculateBtn">🔥 Рассчитать коммерческое предложение</button>
+                <div id="resultBlock"></div>
+            </div>
+
+            <div class="card">
+                <h2>📄 Коммерческое предложение (таблица)</h2>
+                <div id="offerPreview" style="background:#fafafa; border-radius:16px; padding:12px; max-height: 400px; overflow: auto;">
+                    <p style="color:gray;">Нажмите «Рассчитать» – здесь появится таблица для КП.</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>🕸️ Парсинг зарплат (Avito / HH)</h2>
+                <div class="parsing-demo">
+                    <p><strong>Демо-режим</strong> – реальный парсинг требует бэкенда.<br>
+                    Нажмите, чтобы получить примерные зарплаты грузчика/комплектовщика по РФ.</p>
+                    <button id="parseSalaryBtn" style="background:#f39c12; border:none; padding:8px 16px; border-radius:30px; color:white; font-weight:bold;">📡 Запросить зарплаты</button>
+                    <div id="parsedResult" style="margin-top: 12px; font-size:0.9rem;"></div>
+                </div>
+                <details>
+                    <summary style="cursor:pointer;">⚙️ Как подключить реальный парсинг</summary>
+                    <pre style="background:#1e1e2f; color:#fff; padding:8px; border-radius:12px; font-size:11px; overflow-x:auto;">
+// backend.js (Express + Puppeteer)
+const express = require('express');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+puppeteer.use(StealthPlugin());
+const app = express();
+app.get('/api/salary', async (req, res) => {
+  const browser = await puppeteer.launch({ headless: true });
+  const page = await browser.newPage();
+  await page.goto('https://hh.ru/search/vacancy?text=грузчик&area=113');
+  // ... парсинг
+  res.json({ hh: 45000, avito: 47000 });
+});
+app.listen(3001);
+                    </pre>
+                </details>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ---------- Дополнительные расходы ----------
+    let extraExpenses = [
+        { name: "Спецодежда (амортизация)", value: 5 },
+        { name: "Мобильная связь", value: 2 }
+    ];
+
+    function renderExtraExpenses() {
+        const container = document.getElementById('extraExpensesList');
+        container.innerHTML = '';
+        extraExpenses.forEach((exp, idx) => {
+            const div = document.createElement('div');
+            div.className = 'expense-item';
+            div.innerHTML = `
+                <input type="text" value="${escapeHtml(exp.name)}" data-idx="${idx}" data-field="name" style="flex:2">
+                <input type="number" value="${exp.value}" step="1" data-idx="${idx}" data-field="value" style="flex:1">
+                <button onclick="removeExtraExpense(${idx})">✖</button>
+            `;
+            container.appendChild(div);
+        });
+        document.querySelectorAll('#extraExpensesList input').forEach(inp => {
+            inp.addEventListener('change', (e) => {
+                const idx = parseInt(e.target.dataset.idx);
+                const field = e.target.dataset.field;
+                if (field === 'name') extraExpenses[idx].name = e.target.value;
+                if (field === 'value') extraExpenses[idx].value = parseFloat(e.target.value) || 0;
+            });
+        });
+    }
+
+    window.removeExtraExpense = (idx) => {
+        extraExpenses.splice(idx, 1);
+        renderExtraExpenses();
+    };
+
+    document.getElementById('addExpenseBtn').addEventListener('click', () => {
+        extraExpenses.push({ name: "Новый расход", value: 0 });
+        renderExtraExpenses();
+    });
+
+    function escapeHtml(str) {
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    // ---------- Основной расчёт ----------
+    let lastCalculation = {}; // храним последние результаты для экспорта
+
+    function calculateOffer() {
+        const staffPerDay = parseFloat(document.getElementById('staffPerDay').value) || 0;
+        const periodDays = parseFloat(document.getElementById('periodDays').value) || 0;
+        const hoursPerShift = parseFloat(document.getElementById('hoursPerShift').value) || 0;
+        const workDaysWeek = parseFloat(document.getElementById('workDaysWeek').value) || 0;
+        const shiftsPerMonth = parseFloat(document.getElementById('shiftsPerMonth').value) || 0;
+        const coverageRatio = parseFloat(document.getElementById('coverageRatio').value) || 1;
+        const targetMargin = parseFloat(document.getElementById('targetMargin').value) / 100 || 0;
+        const vatRate = parseFloat(document.getElementById('vatRate').value) / 100 || 0;
+
+        const salaryHourlyVakhta = parseFloat(document.getElementById('salaryHourlyVakhta').value) || 0;
+        const salaryHourlyLocal = parseFloat(document.getElementById('salaryHourlyLocal').value) || 0;
+        const housingCost = parseFloat(document.getElementById('housingCost').value) || 0;
+        const recruitmentCost = parseFloat(document.getElementById('recruitmentCost').value) || 0;
+        const ticketComp = parseFloat(document.getElementById('ticketComp').value) || 0;
+        const transportMonth = parseFloat(document.getElementById('transportMonth').value) || 0;
+        const foodCost = parseFloat(document.getElementById('foodCost').value) || 0;
+        const lmkCost = parseFloat(document.getElementById('lmkCost').value) || 0;
+        const sizCost = parseFloat(document.getElementById('sizCost').value) || 0;
+        const certCost = parseFloat(document.getElementById('certCost').value) || 0;
+
+        const brigadierMonth = parseFloat(document.getElementById('brigadierMonth').value) || 0;
+        const managementMonth = parseFloat(document.getElementById('managementMonth').value) || 0;
+        const indirectPercent = parseFloat(document.getElementById('indirectPercent').value) / 100 || 0;
+        const allocationPercent = parseFloat(document.getElementById('allocationPercent').value) / 100 || 0;
+        const rszPercent = parseFloat(document.getElementById('rszPercent').value) / 100 || 0;
+        const penaltyPercent = parseFloat(document.getElementById('penaltyPercent').value) / 100 || 0;
+        const agentPercent = parseFloat(document.getElementById('agentPercent').value) / 100 || 0;
+
+        const totalShifts = staffPerDay * periodDays;
+        const totalHours = totalShifts * hoursPerShift;
+        const avgStaff = staffPerDay;
+
+        const effectiveHourlySalary = salaryHourlyVakhta * coverageRatio;
+        const totalSalaryCost = effectiveHourlySalary * totalHours;
+
+        const totalHousingCost = housingCost * totalShifts;
+        const totalRecruitmentCost = recruitmentCost * staffPerDay;
+        const totalTicketComp = ticketComp * staffPerDay;
+        const totalTransportCost = transportMonth * avgStaff * (periodDays / 30);
+        const totalFoodCost = foodCost * totalShifts;
+        const totalLmkCost = lmkCost * staffPerDay;
+        const totalSizCost = sizCost * staffPerDay;
+        const totalCertCost = certCost * staffPerDay;
+        const totalBrigadierCost = brigadierMonth * (periodDays / 30);
+        const totalManagementCost = managementMonth * (periodDays / 30);
+        let extraPerHour = extraExpenses.reduce((sum, e) => sum + (e.value || 0), 0);
+        const totalExtraCost = extraPerHour * totalHours;
+
+        let directCosts = totalSalaryCost + totalHousingCost + totalRecruitmentCost + totalTicketComp +
+                          totalTransportCost + totalFoodCost + totalLmkCost + totalSizCost + totalCertCost +
+                          totalBrigadierCost + totalManagementCost + totalExtraCost;
+
+        const rszCost = totalSalaryCost * rszPercent;
+        const allocationCost = totalSalaryCost * allocationPercent;
+        const indirectCost = directCosts * indirectPercent;
+        let costBase = directCosts + rszCost + allocationCost + indirectCost;
+
+        let revenueBeforePenaltyAgent = costBase / (1 - targetMargin);
+        const penaltyCost = revenueBeforePenaltyAgent * penaltyPercent;
+        const agentCost = revenueBeforePenaltyAgent * agentPercent;
+        let revenueExVat = revenueBeforePenaltyAgent + penaltyCost + agentCost;
+        const vatAmount = revenueExVat * vatRate;
+        const revenueWithVat = revenueExVat + vatAmount;
+
+        const pricePerHourExVat = revenueExVat / totalHours;
+        const pricePerHourWithVat = revenueWithVat / totalHours;
+        const pricePerShiftExVat = pricePerHourExVat * hoursPerShift;
+        const pricePerShiftWithVat = pricePerHourWithVat * hoursPerShift;
+
+        // Сохраняем для экспорта
+        lastCalculation = {
+            staffPerDay, periodDays, hoursPerShift, workDaysWeek,
+            totalHours, pricePerHourExVat, pricePerHourWithVat,
+            pricePerShiftExVat, pricePerShiftWithVat,
+            revenueExVat, revenueWithVat, vatAmount,
+            actualMargin: ((revenueExVat - costBase)/revenueExVat * 100),
+            targetMarginPercent: targetMargin*100,
+            vatRatePercent: vatRate*100
+        };
+
+        const resultHtml = `
+            <div class="result-box">
+                <div><strong>📌 Всего человеко-часов:</strong> ${totalHours.toLocaleString('ru-RU')}</div>
+                <div><strong>💰 Себестоимость 1 часа (без наценки):</strong> ${(costBase/totalHours).toFixed(2)} ₽</div>
+                <div><strong>🎯 Цена для клиента за 1 час (без НДС):</strong> <span style="font-size:1.4rem;">${pricePerHourExVat.toFixed(2)} ₽</span></div>
+                <div><strong>🧾 Цена за 1 час (с НДС ${(vatRate*100).toFixed(0)}%):</strong> ${pricePerHourWithVat.toFixed(2)} ₽</div>
+                <div><strong>📆 Цена за смену (${hoursPerShift} ч) без НДС:</strong> ${pricePerShiftExVat.toFixed(2)} ₽</div>
+                <div><strong>💵 Общая выручка без НДС:</strong> ${revenueExVat.toLocaleString('ru-RU')} ₽</div>
+                <div><strong>📈 Маржинальность (факт):</strong> ${lastCalculation.actualMargin.toFixed(1)}%</div>
+            </div>
+        `;
+        document.getElementById('resultBlock').innerHTML = resultHtml;
+
+        const offerTable = `
+            <table class="offer-table" id="exportTable">
+                <tr><th>Показатель</th><th>Значение</th></tr>
+                <tr><td>Количество сотрудников в смену</td><td>${staffPerDay} чел.</td></tr>
+                <tr><td>Период оказания услуг</td><td>${periodDays} дней</td></tr>
+                <tr><td>Режим работы</td><td>${hoursPerShift} часов/смена, ${workDaysWeek} дней в неделю</td></tr>
+                <tr><td>Стоимость 1 человеко-часа (без НДС)</td><td><b>${pricePerHourExVat.toFixed(2)} ₽</b></td></tr>
+                <tr><td>Стоимость смены (${hoursPerShift} ч) без НДС</td><td>${pricePerShiftExVat.toFixed(2)} ₽</td></tr>
+                <tr><td>НДС ${(vatRate*100).toFixed(0)}%</td><td>${vatAmount.toLocaleString('ru-RU')} ₽</td></tr>
+                <tr><td><b>Итого к оплате (с НДС)</b></td><td><b>${revenueWithVat.toLocaleString('ru-RU')} ₽</b></td></tr>
+            </table>
+            <div class="note">* В стоимость включено: ФОТ с коэф. обеспеченности, проживание, подбор, проезд, питание, ЛМК, СИЗ, управление, накладные, РСЗ, аллокация, резерв штрафов, агентские и маржа ${(targetMargin*100).toFixed(0)}%.</div>
+        `;
+        document.getElementById('offerPreview').innerHTML = offerTable;
+    }
+
+    document.getElementById('calculateBtn').addEventListener('click', calculateOffer);
+
+    // ---------- Экспорт в PDF (через печать) ----------
+    document.getElementById('exportPdfBtn').addEventListener('click', () => {
+        window.print();
+    });
+
+    // ---------- Экспорт в Excel (XLSX) ----------
+    document.getElementById('exportExcelBtn').addEventListener('click', () => {
+        // Собираем данные для экспорта: параметры + таблица КП
+        const staff = document.getElementById('staffPerDay').value;
+        const days = document.getElementById('periodDays').value;
+        const hoursShift = document.getElementById('hoursPerShift').value;
+        const workDays = document.getElementById('workDaysWeek').value;
+        const margin = document.getElementById('targetMargin').value;
+        const vat = document.getElementById('vatRate').value;
+
+        // Получаем текущую таблицу из offerPreview
+        const tableElem = document.querySelector('#offerPreview table');
+        if (!tableElem) {
+            alert("Сначала рассчитайте коммерческое предложение (кнопка «Рассчитать»).");
+            return;
+        }
+
+        // Создаём массив для Excel
+        let data = [];
+        // Заголовок
+        data.push(["Параметры расчёта", ""]);
+        data.push(["Заявка (сотр/сутки)", staff]);
+        data.push(["Период (дней)", days]);
+        data.push(["Часов в смену", hoursShift]);
+        data.push(["Рабочих дней в неделю", workDays]);
+        data.push(["Желаемая маржа (%)", margin]);
+        data.push(["НДС (%)", vat]);
+        data.push([""]);
+        data.push(["КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ", ""]);
+        
+        // Извлекаем строки таблицы
+        const rows = tableElem.querySelectorAll('tr');
+        rows.forEach(row => {
+            const cols = row.querySelectorAll('td, th');
+            const rowData = [];
+            cols.forEach(col => rowData.push(col.innerText));
+            if (rowData.length) data.push(rowData);
+        });
+        
+        // Добавляем итоговую выручку из блока результата
+        const resultDiv = document.getElementById('resultBlock');
+        const resultText = resultDiv.innerText;
+        data.push([""]);
+        data.push(["Детализация результата", ""]);
+        resultText.split('\n').forEach(line => {
+            if (line.trim()) data.push([line.trim(), ""]);
+        });
+
+        // Создаём книгу и лист
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Коммерческое предложение");
+        // Сохраняем файл
+        XLSX.writeFile(wb, `KP_${new Date().toISOString().slice(0,19)}.xlsx`);
+    });
+
+    // ---------- Демо-парсинг ----------
+    document.getElementById('parseSalaryBtn').addEventListener('click', () => {
+        const demoDiv = document.getElementById('parsedResult');
+        demoDiv.innerHTML = '⏳ Загрузка демо-данных...';
+        setTimeout(() => {
+            demoDiv.innerHTML = `
+                <div style="background:#fff3e0; border-radius:12px; padding:8px;">
+                    🧾 <strong>Демо-данные (средние по РФ)</strong><br>
+                    📍 Avito: грузчик 45 000–65 000 ₽/мес, комплектовщик 50 000–70 000 ₽/мес<br>
+                    📍 HeadHunter: грузчик 40 000–60 000 ₽/мес, комплектовщик 48 000–68 000 ₽/мес<br>
+                    ⚠️ Для реальных данных разверните бэкенд.
+                </div>
+            `;
+        }, 800);
+    });
+
+    renderExtraExpenses();
+    calculateOffer();
+</script>
+</body>
+</html>

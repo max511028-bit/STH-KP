@@ -1,546 +1,1134 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Калькулятор КП | Аутсорсинг персонала</title>
-    <!-- SheetJS для экспорта в Excel -->
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
-    <style>
-        * {
-            box-sizing: border-box;
-            font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
-        }
-        body {
-            background: #eef2f7;
-            margin: 0;
-            padding: 20px;
-        }
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        h1 {
-            font-size: 1.8rem;
-            margin-bottom: 0.25rem;
-        }
-        .sub {
-            color: #2c3e50;
-            border-left: 4px solid #3498db;
-            padding-left: 16px;
-            margin-bottom: 24px;
-        }
-        .toolbar {
-            display: flex;
-            gap: 12px;
-            justify-content: flex-end;
-            margin-bottom: 20px;
-        }
-        .toolbar button {
-            background: #2c3e50;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 30px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .toolbar button:hover {
-            background: #1a2a3a;
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-        }
-        .card {
-            background: white;
-            border-radius: 24px;
-            padding: 20px 24px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
-            margin-bottom: 24px;
-        }
-        .card h2 {
-            margin-top: 0;
-            font-size: 1.3rem;
-        }
-        .param-row {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-        .param-row label {
-            width: 220px;
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
-        .param-row input, .param-row select {
-            flex: 1;
-            padding: 8px 12px;
-            border: 1px solid #ccc;
-            border-radius: 12px;
-            font-size: 0.9rem;
-        }
-        .expense-item {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            margin-bottom: 8px;
-            flex-wrap: wrap;
-        }
-        .expense-item input {
-            flex: 2;
-            padding: 6px 10px;
-            border-radius: 12px;
-            border: 1px solid #ccc;
-        }
-        .expense-item input[type="number"] {
-            flex: 1;
-        }
-        .expense-item button {
-            background: #e74c3c;
-            border: none;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            cursor: pointer;
-        }
-        .add-expense {
-            background: #2ecc71;
-            border: none;
-            color: white;
-            padding: 6px 14px;
-            border-radius: 30px;
-            cursor: pointer;
-            margin-top: 8px;
-            font-weight: bold;
-        }
-        .result-box {
-            background: #e8f4fd;
-            border-radius: 20px;
-            padding: 16px;
-            margin-top: 16px;
-        }
-        .total-price {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: #2c3e50;
-        }
-        button.calc-btn {
-            background: #3498db;
-            border: none;
-            color: white;
-            padding: 12px 20px;
-            font-size: 1rem;
-            border-radius: 40px;
-            cursor: pointer;
-            width: 100%;
-            font-weight: bold;
-            margin-top: 12px;
-        }
-        .offer-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 16px 0;
-            font-size: 0.9rem;
-        }
-        .offer-table td, .offer-table th {
-            border-bottom: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        .parsing-demo {
-            background: #fef9e6;
-            border-left: 4px solid #f39c12;
-            padding: 12px;
-            border-radius: 16px;
-            margin-bottom: 16px;
-        }
-        @media print {
-            body {
-                background: white;
-                padding: 0;
-                margin: 0;
-            }
-            .toolbar, .card:not(:has(.offer-table)), .calc-btn, .parsing-demo, .add-expense, .expense-item button, #parseSalaryBtn, details {
-                display: none;
-            }
-            .grid {
-                display: block;
-            }
-            .card {
-                box-shadow: none;
-                padding: 0;
-            }
-            .offer-table {
-                border: 1px solid #ccc;
-            }
-        }
-        @media (max-width: 900px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
-        }
-        .note {
-            font-size: 0.75rem;
-            color: gray;
-            margin-top: 8px;
-        }
-        hr {
-            margin: 16px 0;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>КП Калькулятор — Аутсорс персонала</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --blue:#1a56db; --blue-dk:#1e40af; --blue-lt:#eff6ff;
+      --green:#0e9f6e; --bg:#f3f4f6; --card:#fff;
+      --border:#e5e7eb; --text:#111827; --muted:#6b7280; --light:#9ca3af;
+      /* STH Brand */
+      --sth-red:#ED1F4E; --sth-red-dk:#c41840; --sth-red-lt:#fff0f3;
+      --sth-dark:#181818; --sth-gray:#424956; --sth-bg:#F7F8FB;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+         background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;}
+
+    /* header */
+    header{background:var(--blue);color:#fff;padding:12px 20px;display:flex;
+           align-items:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,.2);
+           position:sticky;top:0;z-index:200;}
+    header h1{font-size:17px;font-weight:700;}
+    header .sub{font-size:11px;opacity:.75;}
+    .h-actions{margin-left:auto;display:flex;gap:7px;}
+
+    /* layout */
+    .layout{display:grid;grid-template-columns:420px 1fr;gap:18px;
+            padding:18px;max-width:1500px;margin:0 auto;align-items:start;}
+    @media(max-width:960px){.layout{grid-template-columns:1fr;}}
+
+    /* card */
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;
+          padding:18px;margin-bottom:14px;}
+    .card h2{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+             color:var(--muted);margin-bottom:14px;padding-bottom:9px;border-bottom:1px solid var(--border);}
+
+    /* field */
+    .field{margin-bottom:11px;}
+    .field:last-child{margin-bottom:0;}
+    .field>label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px;}
+    .field input[type=number],.field input[type=text],.field select{
+      width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:7px;
+      font-size:13px;color:var(--text);background:#fff;transition:border-color .15s;}
+    .field input:focus,.field select:focus{outline:none;border-color:var(--blue);
+      box-shadow:0 0 0 3px rgba(26,86,219,.1);}
+    .hint{font-size:11px;color:var(--light);margin-top:3px;}
+    .rec-link{font-size:11px;color:var(--blue);cursor:pointer;text-decoration:underline;margin-top:3px;display:inline-block;}
+    .rec-link:hover{color:var(--blue-dk);}
+    .field-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+    .field-row>label{margin:0;}
+
+    /* toggle */
+    .toggle{position:relative;display:inline-block;width:32px;height:17px;flex-shrink:0;}
+    .toggle input{opacity:0;width:0;height:0;}
+    .slider{position:absolute;inset:0;background:#d1d5db;border-radius:17px;cursor:pointer;transition:.25s;}
+    .slider::before{content:'';position:absolute;width:11px;height:11px;left:3px;bottom:3px;
+      background:#fff;border-radius:50%;transition:.25s;}
+    .toggle input:checked+.slider{background:var(--blue);}
+    .toggle input:checked+.slider::before{transform:translateX(15px);}
+
+    /* buttons */
+    .btn{padding:7px 13px;border-radius:7px;font-size:12px;font-weight:500;
+         cursor:pointer;border:none;transition:all .15s;white-space:nowrap;}
+    .btn:disabled{opacity:.55;cursor:default;}
+    .btn-primary{background:var(--blue);color:#fff;}
+    .btn-primary:hover:not(:disabled){background:var(--blue-dk);}
+    .btn-outline{background:#fff;color:var(--blue);border:1px solid var(--blue);}
+    .btn-outline:hover:not(:disabled){background:var(--blue-lt);}
+    .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
+    .btn-ghost:hover{background:var(--bg);}
+    .btn-danger{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;}
+    .btn-danger:hover{background:#fca5a5;}
+    .btn-sm{padding:4px 9px;font-size:11px;}
+    .btn-xs{padding:3px 7px;font-size:10px;}
+
+    /* duration */
+    .dur-group{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;}
+    .dur-btn{padding:7px 4px;border:1px solid var(--border);border-radius:7px;
+             background:#fff;cursor:pointer;font-size:12px;font-weight:500;
+             color:var(--muted);transition:all .15s;text-align:center;}
+    .dur-btn.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+
+    /* ── Vacancy cards ── */
+    .vac-list{display:flex;flex-direction:column;gap:12px;}
+    .vac-card{border:1px solid var(--border);border-radius:10px;background:#fff;overflow:hidden;}
+    .vac-hdr{display:flex;align-items:center;gap:8px;padding:10px 12px;
+             background:#f8faff;border-bottom:1px solid var(--border);}
+    .vac-hdr-num{font-size:10px;font-weight:700;color:var(--blue);background:var(--blue-lt);
+                 border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;}
+    .vac-name-input{flex:1;border:none;background:transparent;font-size:13px;font-weight:600;
+                    color:var(--text);outline:none;padding:0;}
+    .vac-name-input:focus{border-bottom:1px solid var(--blue);}
+    .vac-body{padding:12px;}
+    .vac-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px;}
+    .vac-grid .field{margin-bottom:10px;}
+    .hh-row{display:flex;gap:6px;}
+    .hh-row input{flex:1;}
+
+    /* hh status */
+    .hh-st{margin-top:4px;font-size:11px;padding:4px 8px;border-radius:5px;display:none;}
+    .hh-st.loading{background:#fef3c7;color:#92400e;}
+    .hh-st.ok{background:#d1fae5;color:#065f46;}
+    .hh-st.err{background:#fee2e2;color:#991b1b;}
+    .hh-result-box{margin-top:6px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:7px;padding:9px 10px;}
+    .hh-result-box .rates{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:8px;}
+    .hh-result-box .rate-item{text-align:center;}
+    .hh-result-box .rate-item .rv{font-size:15px;font-weight:700;color:var(--blue);}
+    .hh-result-box .rate-item .rl{font-size:10px;color:var(--muted);}
+    .hh-result-box .found{font-size:11px;color:var(--muted);margin-bottom:6px;}
+
+    /* add vacancy button */
+    .add-vac-btn{width:100%;border:2px dashed var(--border);background:transparent;
+                 border-radius:10px;padding:11px;color:var(--muted);font-size:13px;
+                 cursor:pointer;transition:all .15s;}
+    .add-vac-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-lt);}
+
+    /* ── Results ── */
+    .metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+    .metric{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;}
+    .metric.hl{background:var(--blue);border-color:var(--blue);}
+    .m-label{font-size:11px;color:var(--muted);margin-bottom:3px;}
+    .metric.hl .m-label{color:rgba(255,255,255,.75);}
+    .m-value{font-size:22px;font-weight:800;color:var(--text);line-height:1.1;}
+    .metric.hl .m-value{color:#fff;}
+    .m-unit{font-size:11px;color:var(--muted);margin-left:2px;}
+    .metric.hl .m-unit{color:rgba(255,255,255,.65);}
+
+    /* breakdown table */
+    .breakdown{width:100%;border-collapse:collapse;font-size:12px;}
+    .breakdown thead th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;
+      color:var(--muted);font-weight:700;padding:7px 10px;border-bottom:2px solid var(--border);}
+    .breakdown thead th:last-child{text-align:right;}
+    .breakdown td{padding:8px 10px;border-bottom:1px solid var(--border);}
+    .breakdown td:last-child{text-align:right;font-variant-numeric:tabular-nums;}
+    .breakdown tr:last-child td{border-bottom:none;}
+    .breakdown .sec td{background:var(--bg);color:var(--muted);font-size:10px;font-weight:700;
+      text-transform:uppercase;letter-spacing:.06em;padding:5px 10px;}
+    .breakdown .tot td{font-weight:700;background:#f8faff;border-top:2px solid var(--border);border-bottom:2px solid var(--border);}
+    .bc{color:var(--light);font-size:11px;}
+
+    /* per-vacancy summary */
+    .vac-summary-table{width:100%;border-collapse:collapse;font-size:12px;}
+    .vac-summary-table th{background:var(--blue);color:#fff;padding:7px 10px;text-align:left;font-size:11px;}
+    .vac-summary-table th:not(:first-child){text-align:right;}
+    .vac-summary-table td{padding:8px 10px;border-bottom:1px solid var(--border);}
+    .vac-summary-table td:not(:first-child){text-align:right;font-variant-numeric:tabular-nums;}
+    .vac-summary-table tr:nth-child(even) td{background:var(--bg);}
+    .vac-summary-table .sum-row td{font-weight:700;background:#f8faff;border-top:2px solid var(--border);}
+
+    /* ── КП (STH brand) ── */
+    .kp-wrap{background:#fff;border:1px solid var(--border);border-radius:12px;padding:0;margin-top:14px;overflow:hidden;font-family:'Open Sans',sans-serif;}
+
+    /* branded header strip */
+    .kp-brand-header{background:var(--sth-dark);padding:18px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+    .kp-brand-logo{height:36px;object-fit:contain;filter:brightness(0) invert(1);}
+    .kp-brand-contacts{text-align:right;color:rgba(255,255,255,.8);font-size:11px;line-height:1.8;}
+    .kp-brand-contacts a{color:rgba(255,255,255,.8);text-decoration:none;}
+
+    /* red accent bar */
+    .kp-red-bar{height:4px;background:linear-gradient(90deg,var(--sth-red),#ff6b8a);}
+
+    /* main content padding */
+    .kp-content{padding:24px 28px;}
+
+    .kp-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:8px;}
+    .kp-title{font-family:'Rubik',sans-serif;font-size:22px;font-weight:800;color:var(--sth-dark);}
+    .kp-title span{color:var(--sth-red);}
+    .kp-sub{font-size:12px;color:var(--sth-gray);margin-top:4px;}
+    .kp-date{font-size:11px;color:var(--sth-gray);text-align:right;line-height:1.7;}
+
+    .prices-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:20px;}
+    .price-box{border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;position:relative;overflow:hidden;}
+    .price-box::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--border);}
+    .price-box.main{border-color:var(--sth-red);background:var(--sth-red-lt);}
+    .price-box.main::before{background:var(--sth-red);}
+    .price-box .vac-label{font-size:10px;font-weight:700;color:var(--sth-gray);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+    .price-box .amount{font-family:'Rubik',sans-serif;font-size:28px;font-weight:800;color:var(--sth-dark);}
+    .price-box.main .amount{color:var(--sth-red);}
+    .price-box .plabel{font-size:11px;color:var(--sth-gray);margin-top:4px;}
+
+    .kp-section-title{font-family:'Rubik',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--sth-red);margin:18px 0 8px;}
+
+    .kp-table{width:100%;border-collapse:collapse;font-size:12px;font-family:'Open Sans',sans-serif;}
+    .kp-table thead th{background:var(--sth-dark);color:#fff;padding:9px 12px;text-align:left;font-size:11px;font-weight:600;}
+    .kp-table th:not(:first-child){text-align:right;}
+    .kp-table td{padding:8px 12px;border-bottom:1px solid var(--border);}
+    .kp-table td:not(:first-child){text-align:right;}
+    .kp-table tr:nth-child(even) td{background:var(--sth-bg);}
+    .kp-table .highlight-row td{font-weight:700;background:var(--sth-red-lt);}
+    .kp-table .highlight-row td:first-child{border-left:3px solid var(--sth-red);}
+
+    .kp-footer{background:var(--sth-bg);border-top:1px solid var(--border);padding:12px 28px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+    .kp-footer-note{font-size:10px;color:var(--sth-gray);line-height:1.6;flex:1;}
+    .kp-footer-stamp{font-family:'Rubik',sans-serif;font-size:10px;font-weight:700;color:var(--sth-red);border:2px solid var(--sth-red);border-radius:4px;padding:4px 8px;opacity:.7;}
+
+    @media print{
+      .inputs-panel,.no-print,header,.metrics-grid,.card:not(#kp_section){display:none!important;}
+      .layout{display:block;padding:0;}
+      .results-panel{display:block;}
+      .kp-wrap{box-shadow:none;border:none;border-radius:0;margin:0;}
+      .kp-brand-header{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+      .kp-table thead th{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+      .kp-red-bar{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    }
+  </style>
 </head>
 <body>
-<div class="container">
-    <h1>📦 Калькулятор коммерческого предложения</h1>
-    <div class="sub">Аутсорсинг персонала (грузчики, комплектовщики) — расчёт по внутренней модели</div>
 
-    <div class="toolbar">
-        <button id="exportPdfBtn">📄 Экспорт в PDF</button>
-        <button id="exportExcelBtn">📎 Экспорт в Excel</button>
+<header>
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+    <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+    <line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
+  </svg>
+  <div>
+    <h1>КП Калькулятор</h1>
+    <div class="sub">Аутсорсинг массового персонала · Склады · РФ</div>
+  </div>
+  <div class="h-actions no-print">
+    <button class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,.3);" onclick="exportExcel()">⬇ Excel</button>
+    <button class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,.3);" onclick="exportPDF()">⬇ PDF</button>
+    <button class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,.3);" onclick="window.print()">🖨 Печать</button>
+  </div>
+</header>
+
+<div class="layout">
+
+<!-- ═══════════════ LEFT ═══════════════ -->
+<div class="inputs-panel">
+
+  <!-- Проект -->
+  <div class="card">
+    <h2>Параметры проекта</h2>
+
+    <div class="field">
+      <label>Город</label>
+      <input type="text" id="city" value="Москва" list="cities-list" oninput="calc()">
+      <datalist id="cities-list">
+        <option value="Москва"/><option value="Санкт-Петербург"/><option value="Екатеринбург"/>
+        <option value="Новосибирск"/><option value="Казань"/><option value="Нижний Новгород"/>
+        <option value="Самара"/><option value="Ростов-на-Дону"/><option value="Уфа"/>
+        <option value="Красноярск"/><option value="Пермь"/><option value="Воронеж"/>
+        <option value="Краснодар"/><option value="Челябинск"/><option value="Тюмень"/>
+        <option value="Волгоград"/><option value="Барнаул"/><option value="Иркутск"/>
+        <option value="Омск"/><option value="Владивосток"/>
+      </datalist>
     </div>
 
-    <div class="grid">
-        <!-- ЛЕВАЯ КОЛОНКА: параметры -->
-        <div>
-            <div class="card">
-                <h2>⚙️ Параметры проекта</h2>
-                <div class="param-row"><label>👥 Заявка (сотрудников в сутки):</label><input type="number" id="staffPerDay" value="20" step="1"></div>
-                <div class="param-row"><label>📅 Плановый период (дней):</label><input type="number" id="periodDays" value="180" step="1"></div>
-                <div class="param-row"><label>⏱️ Часов в смену (нетто):</label><input type="number" id="hoursPerShift" value="11" step="1"></div>
-                <div class="param-row"><label>🗓️ Рабочих дней в неделю:</label><input type="number" id="workDaysWeek" value="5" step="1"></div>
-                <div class="param-row"><label>📆 Смен в месяц на сотрудника:</label><input type="number" id="shiftsPerMonth" value="22" step="1"></div>
-                <div class="param-row"><label>🔄 Коэф. обеспеченности (запас):</label><input type="number" id="coverageRatio" value="1.15" step="0.01"></div>
-                <div class="param-row"><label>💸 Желаемая маржинальность (%):</label><input type="number" id="targetMargin" value="8" step="1"></div>
-                <div class="param-row"><label>🧾 НДС (%):</label><input type="number" id="vatRate" value="22" step="1"></div>
-            </div>
-
-            <div class="card">
-                <h2>💰 Затраты на сотрудника (в час / в месяц)</h2>
-                <div class="param-row"><label>Зарплата на руки (вахта, руб/час):</label><input type="number" id="salaryHourlyVakhta" value="380" step="5"></div>
-                <div class="param-row"><label>Зарплата на руки (местный, руб/час):</label><input type="number" id="salaryHourlyLocal" value="370" step="5"></div>
-                <div class="param-row"><label>Проживание (за наш счёт, руб/сутки):</label><input type="number" id="housingCost" value="0" step="100"></div>
-                <div class="param-row"><label>Подбор персонала (руб/чел):</label><input type="number" id="recruitmentCost" value="20000" step="1000"></div>
-                <div class="param-row"><label>Компенсация билетов (руб/вахту):</label><input type="number" id="ticketComp" value="0" step="1000"></div>
-                <div class="param-row"><label>Проезд (руб/мес на чел):</label><input type="number" id="transportMonth" value="7000" step="500"></div>
-                <div class="param-row"><label>Питание (руб/сутки):</label><input type="number" id="foodCost" value="0" step="100"></div>
-                <div class="param-row"><label>ЛМК (медкнижка, руб/чел):</label><input type="number" id="lmkCost" value="3500" step="500"></div>
-                <div class="param-row"><label>СИЗ (руб/чел):</label><input type="number" id="sizCost" value="7500" step="500"></div>
-                <div class="param-row"><label>Удостоверения/обучение (руб/чел):</label><input type="number" id="certCost" value="0" step="1000"></div>
-            </div>
-
-            <div class="card">
-                <h2>👔 Управленческие и накладные расходы</h2>
-                <div class="param-row"><label>Бригадир (выделенный, руб/мес):</label><input type="number" id="brigadierMonth" value="90000" step="5000"></div>
-                <div class="param-row"><label>Руководство проекта (руб/мес):</label><input type="number" id="managementMonth" value="25000" step="5000"></div>
-                <div class="param-row"><label>Косвенные затраты (% от прямых):</label><input type="number" id="indirectPercent" value="2" step="0.5"></div>
-                <div class="param-row"><label>Аллокация (% от ФОТ):</label><input type="number" id="allocationPercent" value="3.9" step="0.1"></div>
-                <div class="param-row"><label>РСЗ (% от ФОТ):</label><input type="number" id="rszPercent" value="8.9" step="0.1"></div>
-                <div class="param-row"><label>Резерв на штрафы (% от выручки):</label><input type="number" id="penaltyPercent" value="2" step="0.5"></div>
-                <div class="param-row"><label>Агентская комиссия (% от выручки):</label><input type="number" id="agentPercent" value="0" step="0.5"></div>
-            </div>
-
-            <div class="card">
-                <h2>➕ Дополнительные статьи расходов (на 1 чел/час)</h2>
-                <div id="extraExpensesList"></div>
-                <button class="add-expense" id="addExpenseBtn">+ Добавить расход</button>
-                <div class="note">* Добавьте любые разовые или периодические затраты</div>
-            </div>
-        </div>
-
-        <!-- ПРАВАЯ КОЛОНКА: результаты -->
-        <div>
-            <div class="card">
-                <h2>📊 Результат расчёта</h2>
-                <button class="calc-btn" id="calculateBtn">🔥 Рассчитать коммерческое предложение</button>
-                <div id="resultBlock"></div>
-            </div>
-
-            <div class="card">
-                <h2>📄 Коммерческое предложение (таблица)</h2>
-                <div id="offerPreview" style="background:#fafafa; border-radius:16px; padding:12px; max-height: 400px; overflow: auto;">
-                    <p style="color:gray;">Нажмите «Рассчитать» – здесь появится таблица для КП.</p>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2>🕸️ Парсинг зарплат (Avito / HH)</h2>
-                <div class="parsing-demo">
-                    <p><strong>Демо-режим</strong> – реальный парсинг требует бэкенда.<br>
-                    Нажмите, чтобы получить примерные зарплаты грузчика/комплектовщика по РФ.</p>
-                    <button id="parseSalaryBtn" style="background:#f39c12; border:none; padding:8px 16px; border-radius:30px; color:white; font-weight:bold;">📡 Запросить зарплаты</button>
-                    <div id="parsedResult" style="margin-top: 12px; font-size:0.9rem;"></div>
-                </div>
-                <details>
-                    <summary style="cursor:pointer;">⚙️ Как подключить реальный парсинг</summary>
-                    <pre style="background:#1e1e2f; color:#fff; padding:8px; border-radius:12px; font-size:11px; overflow-x:auto;">
-// backend.js (Express + Puppeteer)
-const express = require('express');
-const puppeteer = require('puppeteer-extra');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-puppeteer.use(StealthPlugin());
-const app = express();
-app.get('/api/salary', async (req, res) => {
-  const browser = await puppeteer.launch({ headless: true });
-  const page = await browser.newPage();
-  await page.goto('https://hh.ru/search/vacancy?text=грузчик&area=113');
-  // ... парсинг
-  res.json({ hh: 45000, avito: 47000 });
-});
-app.listen(3001);
-                    </pre>
-                </details>
-            </div>
-        </div>
+    <div class="field">
+      <label>Срок проекта</label>
+      <div class="dur-group">
+        <button class="dur-btn active" onclick="setDur(90,this)">90 дней</button>
+        <button class="dur-btn" onclick="setDur(180,this)">180 дней</button>
+        <button class="dur-btn" onclick="setDur(360,this)">360 дней</button>
+      </div>
+      <input type="hidden" id="project_days" value="90">
     </div>
-</div>
+
+    <div class="field">
+      <label>Рабочих дней объекта в неделю</label>
+      <input type="number" id="days_per_week" value="7" min="1" max="7" oninput="calc()">
+    </div>
+
+    <div class="field">
+      <label>Длина смены, часов</label>
+      <input type="number" id="shift_hours" value="11" min="1" max="24" step="0.5" oninput="calc()">
+      <div class="hint">По умолчанию 11 ч (12 ч − перерыв)</div>
+    </div>
+  </div>
+
+  <!-- Персонал -->
+  <div class="card">
+    <h2>Параметры персонала</h2>
+    <div class="field">
+      <label>Среднее смен у сотрудника в месяц</label>
+      <input type="number" id="avg_sm" value="15" min="1" oninput="calc()">
+    </div>
+    <div class="field">
+      <label>Среднее смен за весь срок жизни (lifetime)</label>
+      <input type="number" id="avg_lt" value="45" min="1" oninput="calc()">
+      <div class="hint">Используется для расчёта кол-ва найма за период</div>
+    </div>
+  </div>
+
+  <!-- HH.ru прокси (опционально) -->
+  <div class="card" id="proxy_card">
+    <h2 style="cursor:pointer;" onclick="toggleProxyCard()">
+      HH.ru парсинг
+      <span style="font-weight:400;text-transform:none;font-size:11px;color:#0e9f6e;margin-left:6px;">● Работает автоматически</span>
+      <span style="float:right;font-size:10px;color:#9ca3af;" id="proxy_toggle_lbl">расширенные настройки ▾</span>
+    </h2>
+    <div id="proxy_advanced" style="display:none;">
+      <div class="field">
+        <label>Свой Cloudflare Worker URL (если автопрокси не работает)</label>
+        <input type="text" id="proxy_url" placeholder="https://hh-proxy.ВАШ-АККАУНТ.workers.dev"
+               oninput="saveProxy()" style="font-size:12px;">
+        <div class="hint" id="proxy_hint">
+          Оставьте пустым — используется автоматический прокси. Файл <b>hh-proxy-worker.js</b> лежит рядом с index.html.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Вакансии -->
+  <div class="card">
+    <h2>Вакансии</h2>
+    <div class="vac-list" id="vac_list"></div>
+    <button class="add-vac-btn" style="margin-top:12px;" onclick="addVac()">+ Добавить вакансию</button>
+  </div>
+
+  <!-- Ежемесячные расходы (общие) -->
+  <div class="card">
+    <h2>Ежемесячные расходы (общие)</h2>
+
+    <div class="field">
+      <div class="field-row">
+        <label>ЗП бригадира, ₽/мес</label>
+        <label class="toggle"><input type="checkbox" id="brig_on" onchange="calc()"><span class="slider"></span></label>
+      </div>
+      <input type="number" id="brig_sal" value="0" min="0" step="1000" oninput="calc()">
+      <span class="rec-link" onclick="applyBrigRec()">Рекомендация: 115% от ЗП сотрудника × 30 дней</span>
+    </div>
+
+    <div class="field">
+      <div class="field-row">
+        <label>ЗП менеджера объекта, ₽/мес</label>
+        <label class="toggle"><input type="checkbox" id="mgr_on" onchange="calc()"><span class="slider"></span></label>
+      </div>
+      <input type="number" id="mgr_sal" value="0" min="0" step="1000" oninput="calc()">
+    </div>
+
+    <div class="field">
+      <div class="field-row">
+        <label>Жильё на 1 сотрудника, ₽/мес</label>
+        <label class="toggle"><input type="checkbox" id="house_on" onchange="calc()"><span class="slider"></span></label>
+      </div>
+      <input type="number" id="house_cost" value="0" min="0" step="500" oninput="calc()">
+    </div>
+
+    <div class="field">
+      <div class="field-row">
+        <label>Транспорт на 1 сотрудника, ₽/мес</label>
+        <label class="toggle"><input type="checkbox" id="trans_on" onchange="calc()"><span class="slider"></span></label>
+      </div>
+      <input type="number" id="trans_cost" value="0" min="0" step="500" oninput="calc()">
+    </div>
+  </div>
+
+  <!-- Финансовые параметры -->
+  <div class="card">
+    <h2>Финансовые параметры</h2>
+    <div class="field">
+      <label>РСЗ — Расчётная Стоимость Зачислений, % от расходов</label>
+      <input type="number" id="rsz_pct" value="10" min="0" max="100" step="0.5" oninput="calc()">
+    </div>
+    <div class="field">
+      <label>Аллокация, % от выручки (расходная статья)</label>
+      <input type="number" id="alloc_pct" value="5" min="0" max="100" step="0.5" oninput="calc()">
+    </div>
+    <div class="field">
+      <label>Маржа, % от выручки</label>
+      <input type="number" id="margin_pct" value="15" min="0" max="100" step="0.5" oninput="calc()">
+    </div>
+    <div class="field">
+      <label>НДС, %</label>
+      <input type="number" id="vat_pct" value="22" min="0" max="50" step="0.5" oninput="calc()">
+    </div>
+  </div>
+
+</div><!-- /inputs -->
+
+<!-- ═══════════════ RIGHT ═══════════════ -->
+<div class="results-panel">
+
+  <!-- Общие метрики -->
+  <div class="metrics-grid">
+    <div class="metric hl">
+      <div class="m-label">Итоговая выручка (без НДС)</div>
+      <div><span class="m-value" id="r_rev">—</span><span class="m-unit">₽</span></div>
+    </div>
+    <div class="metric hl">
+      <div class="m-label">Маржинальная прибыль</div>
+      <div><span class="m-value" id="r_profit">—</span><span class="m-unit">₽</span></div>
+    </div>
+    <div class="metric">
+      <div class="m-label">Общий штат (для закрытия заявки)</div>
+      <div><span class="m-value" id="r_roster">—</span><span class="m-unit">чел.</span></div>
+    </div>
+    <div class="metric">
+      <div class="m-label">Всего найм за период</div>
+      <div><span class="m-value" id="r_hires">—</span><span class="m-unit">чел.</span></div>
+    </div>
+  </div>
+
+  <!-- Сводная по вакансиям -->
+  <div class="card">
+    <h2>Сводная таблица по вакансиям</h2>
+    <div style="overflow-x:auto;">
+      <table class="vac-summary-table" id="vac_summary"></table>
+    </div>
+  </div>
+
+  <!-- Детализация -->
+  <div class="card">
+    <h2>Детализация расходов</h2>
+    <div style="overflow-x:auto;">
+      <table class="breakdown">
+        <thead><tr><th style="width:42%">Статья</th><th style="width:34%">База расчёта</th><th style="width:24%">Сумма, ₽</th></tr></thead>
+        <tbody id="breakdown_body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- КП -->
+  <div class="kp-wrap" id="kp_section">
+    <!-- Branded header -->
+    <div class="kp-brand-header">
+      <img class="kp-brand-logo" src="https://sth-corp.ru/upload/resize_cache/kraken/7f7/300_100_1/zr6z5w59vm98n2r3slpgq2s40gtgd5et.webp" alt="STH Group" onerror="this.style.display='none';this.nextSibling.style.display='block'">
+      <div style="display:none;font-family:'Rubik',sans-serif;font-size:18px;font-weight:800;color:#fff;">STH GROUP</div>
+      <div class="kp-brand-contacts">
+        <div>+7 (495) 045-98-34 &nbsp;|&nbsp; +7 (499) 520-93-25</div>
+        <div><a href="mailto:info@sth-corp.ru">info@sth-corp.ru</a> &nbsp;|&nbsp; <a href="https://sth-corp.ru">sth-corp.ru</a></div>
+      </div>
+    </div>
+    <div class="kp-red-bar"></div>
+
+    <div class="kp-content">
+      <div class="kp-head">
+        <div>
+          <div class="kp-title">Коммерческое <span>предложение</span></div>
+          <div class="kp-sub">Услуги по предоставлению персонала (аутсорсинг) · <span id="kp_city">—</span></div>
+        </div>
+        <div class="kp-date" id="kp_date"></div>
+      </div>
+
+      <div class="kp-section-title">Ставки по вакансиям</div>
+      <div class="prices-grid" id="kp_prices"></div>
+
+      <div class="kp-section-title">Детализация по вакансиям</div>
+      <table class="kp-table">
+        <thead><tr>
+          <th>Вакансия</th><th>Чел./смену</th><th>Штат</th>
+          <th>Часов за период</th><th>Ставка без НДС</th>
+          <th>Ставка с НДС <span id="kp_vat_lbl">22</span>%</th>
+        </tr></thead>
+        <tbody id="kp_vac_rows"></tbody>
+      </table>
+
+      <div class="kp-section-title">Параметры проекта</div>
+      <table class="kp-table">
+        <thead><tr><th colspan="2">Условия оказания услуг</th></tr></thead>
+        <tbody id="kp_params"></tbody>
+      </table>
+    </div>
+
+    <div class="kp-footer">
+      <div class="kp-footer-note" id="kp_note"></div>
+      <div class="kp-footer-stamp">STH GROUP © 2018–2025</div>
+    </div>
+  </div>
+
+</div><!-- /results -->
+</div><!-- /layout -->
 
 <script>
-    // ---------- Дополнительные расходы ----------
-    let extraExpenses = [
-        { name: "Спецодежда (амортизация)", value: 5 },
-        { name: "Мобильная связь", value: 2 }
-    ];
+// ═══════════════════════════════════════════════════════════════════════
+// Helpers
+// ═══════════════════════════════════════════════════════════════════════
+const $   = id => document.getElementById(id);
+const num = id => parseFloat($(id)?.value) || 0;
+const chk = id => $(id)?.checked ?? false;
+const str = id => $(id)?.value?.trim() || '';
 
-    function renderExtraExpenses() {
-        const container = document.getElementById('extraExpensesList');
-        container.innerHTML = '';
-        extraExpenses.forEach((exp, idx) => {
-            const div = document.createElement('div');
-            div.className = 'expense-item';
-            div.innerHTML = `
-                <input type="text" value="${escapeHtml(exp.name)}" data-idx="${idx}" data-field="name" style="flex:2">
-                <input type="number" value="${exp.value}" step="1" data-idx="${idx}" data-field="value" style="flex:1">
-                <button onclick="removeExtraExpense(${idx})">✖</button>
-            `;
-            container.appendChild(div);
-        });
-        document.querySelectorAll('#extraExpensesList input').forEach(inp => {
-            inp.addEventListener('change', (e) => {
-                const idx = parseInt(e.target.dataset.idx);
-                const field = e.target.dataset.field;
-                if (field === 'name') extraExpenses[idx].name = e.target.value;
-                if (field === 'value') extraExpenses[idx].value = parseFloat(e.target.value) || 0;
-            });
-        });
-    }
+function fmt(n, dec = 0) {
+  if (!isFinite(n) || isNaN(n)) return '—';
+  return n.toFixed(dec).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0').replace('.', ',');
+}
+const fmtM = n => fmt(n, 2);
+const fmtI = n => fmt(Math.round(n), 0);
 
-    window.removeExtraExpense = (idx) => {
-        extraExpenses.splice(idx, 1);
-        renderExtraExpenses();
+// ═══════════════════════════════════════════════════════════════════════
+// State
+// ═══════════════════════════════════════════════════════════════════════
+let DUR    = 90;
+let nextId = 1;
+let vacs   = [];       // array of vacancy objects
+let lastCalc = {};     // last calculation result, used by export
+
+function newVac(name = 'Новая вакансия', hc = 10) {
+  return { id: nextId++, name, hc, rate: 220,
+           rec: 20000, lmk_on: true, lmk: 3500,
+           siz_on: true, siz: 5000, trn_on: false, trn: 0 };
+}
+
+function setDur(d, btn) {
+  DUR = d;
+  $('project_days').value = d;
+  document.querySelectorAll('.dur-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  calc();
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Vacancy DOM management
+// ═══════════════════════════════════════════════════════════════════════
+function addVac(name, hc) {
+  vacs.push(newVac(name, hc));
+  renderVacs();
+  calc();
+}
+
+function removeVac(id) {
+  if (vacs.length <= 1) { alert('Должна быть хотя бы одна вакансия.'); return; }
+  vacs = vacs.filter(v => v.id !== id);
+  renderVacs();
+  calc();
+}
+
+function saveVacsFromDOM() {
+  vacs.forEach(v => {
+    v.name   = $(`v${v.id}_nm`)?.value  || v.name;
+    v.hc     = parseFloat($(`v${v.id}_hc`)?.value)  || v.hc;
+    v.rate   = parseFloat($(`v${v.id}_rt`)?.value)  || 0;
+    v.rec    = parseFloat($(`v${v.id}_rec`)?.value) || 0;
+    v.lmk_on = $(`v${v.id}_lmk_on`)?.checked ?? v.lmk_on;
+    v.lmk    = parseFloat($(`v${v.id}_lmk`)?.value) || 0;
+    v.siz_on = $(`v${v.id}_siz_on`)?.checked ?? v.siz_on;
+    v.siz    = parseFloat($(`v${v.id}_siz`)?.value) || 0;
+    v.trn_on = $(`v${v.id}_trn_on`)?.checked ?? v.trn_on;
+    v.trn    = parseFloat($(`v${v.id}_trn`)?.value) || 0;
+  });
+}
+
+function renderVacs() {
+  $('vac_list').innerHTML = vacs.map((v, i) => `
+<div class="vac-card" id="vc${v.id}">
+  <div class="vac-hdr">
+    <div class="vac-hdr-num">${i + 1}</div>
+    <input class="vac-name-input" id="v${v.id}_nm" value="${escHtml(v.name)}" oninput="calc()">
+    ${vacs.length > 1 ? `<button class="btn btn-danger btn-xs" onclick="removeVac(${v.id})">✕</button>` : ''}
+  </div>
+  <div class="vac-body">
+    <div class="vac-grid">
+      <div class="field">
+        <label>Заявка, чел./смену</label>
+        <input type="number" id="v${v.id}_hc" value="${v.hc}" min="1" oninput="calc()">
+      </div>
+      <div class="field">
+        <label>Стоимость подбора, ₽/чел.</label>
+        <input type="number" id="v${v.id}_rec" value="${v.rec}" min="0" step="500" oninput="calc()">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Ставка сотрудника в час, ₽</label>
+      <div class="hh-row">
+        <input type="number" id="v${v.id}_rt" value="${v.rate}" min="0" step="5" oninput="calc()">
+        <button class="btn btn-outline btn-sm" id="v${v.id}_hh_btn" onclick="searchHH(${v.id})">Подобрать с HH↓</button>
+      </div>
+      <div id="v${v.id}_hh_st" class="hh-st"></div>
+      <div id="v${v.id}_hh_res" style="display:none;"></div>
+    </div>
+
+    <div class="vac-grid">
+      <div class="field">
+        <div class="field-row">
+          <label>ЛМК, ₽/чел.</label>
+          <label class="toggle"><input type="checkbox" id="v${v.id}_lmk_on" ${v.lmk_on ? 'checked' : ''} onchange="calc()"><span class="slider"></span></label>
+        </div>
+        <input type="number" id="v${v.id}_lmk" value="${v.lmk}" min="0" step="100" oninput="calc()">
+      </div>
+      <div class="field">
+        <div class="field-row">
+          <label>СИЗ и форма, ₽/чел.</label>
+          <label class="toggle"><input type="checkbox" id="v${v.id}_siz_on" ${v.siz_on ? 'checked' : ''} onchange="calc()"><span class="slider"></span></label>
+        </div>
+        <input type="number" id="v${v.id}_siz" value="${v.siz}" min="0" step="100" oninput="calc()">
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-row">
+        <label>Обучение / допуски / корочки, ₽/чел.</label>
+        <label class="toggle"><input type="checkbox" id="v${v.id}_trn_on" ${v.trn_on ? 'checked' : ''} onchange="calc()"><span class="slider"></span></label>
+      </div>
+      <input type="number" id="v${v.id}_trn" value="${v.trn}" min="0" step="100" oninput="calc()">
+    </div>
+  </div>
+</div>`).join('');
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Calculation
+// ═══════════════════════════════════════════════════════════════════════
+function calc() {
+  saveVacsFromDOM();
+
+  const proj_days   = DUR;
+  const dpw         = Math.min(7, Math.max(1, num('days_per_week')));
+  const sh          = num('shift_hours');
+  const avg_sm      = num('avg_sm');
+  const avg_lt      = num('avg_lt');
+
+  const brig_sal    = chk('brig_on') ? num('brig_sal') : 0;
+  const mgr_sal     = chk('mgr_on')  ? num('mgr_sal')  : 0;
+  const house       = chk('house_on') ? num('house_cost') : 0;
+  const trans       = chk('trans_on') ? num('trans_cost') : 0;
+
+  const rsz_pct     = num('rsz_pct');
+  const alloc_pct   = num('alloc_pct');
+  const margin_pct  = num('margin_pct');
+  const vat_pct     = num('vat_pct');
+
+  // Project-wide
+  const months           = proj_days / 30;
+  const wdpm             = dpw * 30 / 7;          // рабочих дней/мес на объекте
+  const work_days        = proj_days * dpw / 7;   // рабочих дней за период
+
+  // Total headcount for shared cost allocation
+  const total_hc = vacs.reduce((s, v) => s + v.hc, 0);
+
+  // Per-vacancy calc
+  const vac_results = vacs.map(v => {
+    const roster       = v.hc * wdpm / avg_sm;           // штат для закрытия заявки
+    const ps           = v.hc * work_days;                // человеко-смен за период
+    const hires        = Math.ceil(ps / avg_lt);          // найм за период
+    const client_h     = v.hc * sh * work_days;           // клиентских часов
+
+    const c_salary     = v.rate * sh * ps;
+    const lmk_cost     = v.lmk_on ? v.lmk : 0;
+    const siz_cost     = v.siz_on ? v.siz : 0;
+    const trn_cost     = v.trn_on ? v.trn : 0;
+    const c_hire       = (v.rec + lmk_cost + siz_cost + trn_cost) * hires;
+
+    // Share of shared monthly by headcount ratio
+    const hc_share     = total_hc > 0 ? v.hc / total_hc : 0;
+    const total_roster_all = vacs.reduce((s, vv) => s + vv.hc * wdpm / avg_sm, 0);
+    const roster_share = total_roster_all > 0 ? roster / total_roster_all : 0;
+
+    const shared_monthly = brig_sal * months + mgr_sal * months +
+                           house * Math.ceil(total_roster_all) * months * (total_hc > 0 ? v.hc / total_hc : 0) +
+                           trans * Math.ceil(total_roster_all) * months * (total_hc > 0 ? v.hc / total_hc : 0);
+
+    const c_shared_brig_mgr = (brig_sal + mgr_sal) * months * hc_share;
+    const c_shared_house = house * Math.ceil(roster) * months;
+    const c_shared_trans = trans * Math.ceil(roster) * months;
+
+    const direct       = c_salary + c_hire + c_shared_brig_mgr + c_shared_house + c_shared_trans;
+    const c_rsz        = rsz_pct / 100 * direct;
+    const total_costs  = direct + c_rsz;
+
+    const divisor      = 1 - (margin_pct + alloc_pct) / 100;
+    const revenue      = divisor > 0.01 ? total_costs / divisor : 0;
+    const c_alloc      = alloc_pct / 100 * revenue;
+    const c_margin     = margin_pct / 100 * revenue;
+
+    const rate_ex      = client_h > 0 ? revenue / client_h : 0;
+    const rate_inc     = rate_ex * (1 + vat_pct / 100);
+
+    return {
+      id: v.id, name: v.name, hc: v.hc,
+      roster: Math.ceil(roster), hires, client_h,
+      c_salary, c_hire, c_shared_brig_mgr, c_shared_house, c_shared_trans,
+      direct, c_rsz, total_costs, revenue, c_alloc, c_margin,
+      rate_ex, rate_inc,
+      lmk_cost: lmk_cost * hires, siz_cost: siz_cost * hires,
+      trn_cost: trn_cost * hires, c_rec: v.rec * hires,
+      v
     };
+  });
 
-    document.getElementById('addExpenseBtn').addEventListener('click', () => {
-        extraExpenses.push({ name: "Новый расход", value: 0 });
-        renderExtraExpenses();
-    });
+  const total_roster   = vac_results.reduce((s, r) => s + r.roster, 0);
+  const total_hires    = vac_results.reduce((s, r) => s + r.hires, 0);
+  const total_rev      = vac_results.reduce((s, r) => s + r.revenue, 0);
+  const total_margin   = vac_results.reduce((s, r) => s + r.c_margin, 0);
+  const total_client_h = vac_results.reduce((s, r) => s + r.client_h, 0);
+  const total_costs    = vac_results.reduce((s, r) => s + r.total_costs, 0);
 
-    function escapeHtml(str) {
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
+  lastCalc = { vac_results, total_roster, total_hires, total_rev, total_margin,
+               total_client_h, total_costs, months, work_days, dpw, sh, proj_days,
+               vat_pct, alloc_pct, margin_pct, rsz_pct, brig_sal, mgr_sal,
+               house, trans, avg_sm, avg_lt };
+
+  // ── Update UI ──────────────────────────────────────────────────────
+  $('r_rev').textContent    = fmtI(total_rev);
+  $('r_profit').textContent = fmtI(total_margin);
+  $('r_roster').textContent = total_roster;
+  $('r_hires').textContent  = total_hires;
+
+  // Vacancy summary table
+  const sumHdr = `<thead><tr>
+    <th>Вакансия</th><th>Чел./смену</th><th>Штат</th><th>Найм</th>
+    <th>Ставка сотр.</th><th>Клиент без НДС</th><th>Клиент с НДС</th><th>Выручка</th>
+  </tr></thead>`;
+  const sumRows = vac_results.map(r => `<tr>
+    <td><b>${escHtml(r.name)}</b></td>
+    <td>${r.hc}</td><td>${r.roster}</td><td>${r.hires}</td>
+    <td>${fmtM(r.v.rate)} ₽/ч</td>
+    <td><b>${fmtM(r.rate_ex)} ₽/ч</b></td>
+    <td><b>${fmtM(r.rate_inc)} ₽/ч</b></td>
+    <td>${fmtI(r.revenue)} ₽</td>
+  </tr>`).join('');
+  const sumFoot = `<tr class="sum-row">
+    <td>ИТОГО</td><td>${total_hc}</td><td>${total_roster}</td><td>${total_hires}</td>
+    <td>—</td><td>—</td><td>—</td><td><b>${fmtI(total_rev)} ₽</b></td>
+  </tr>`;
+  $('vac_summary').innerHTML = sumHdr + `<tbody>${sumRows}${sumFoot}</tbody>`;
+
+  // Breakdown
+  const rows = [];
+  const sec = l => rows.push({ sec: l });
+  const row = (l, b, v) => rows.push({ l, b, v });
+  const tot = (l, v) => rows.push({ tot: true, l, v });
+
+  vac_results.forEach(r => {
+    sec(`${r.name} — ФОТ`);
+    row('Зарплата сотрудников',
+      `${fmtM(r.v.rate)} ₽/ч × ${sh} ч × ${fmtI(r.hc * work_days)} смен`, r.c_salary);
+    sec(`${r.name} — Привлечение (${r.hires} чел.)`);
+    row('Подбор', `${fmtI(r.v.rec)} ₽/чел.`, r.c_rec);
+    if (r.v.lmk_on && r.v.lmk) row('ЛМК', `${fmtI(r.v.lmk)} ₽/чел.`, r.lmk_cost);
+    if (r.v.siz_on && r.v.siz) row('СИЗ и форма', `${fmtI(r.v.siz)} ₽/чел.`, r.siz_cost);
+    if (r.v.trn_on && r.v.trn) row('Обучение/допуски', `${fmtI(r.v.trn)} ₽/чел.`, r.trn_cost);
+    if (r.c_shared_brig_mgr > 0 || r.c_shared_house > 0 || r.c_shared_trans > 0) {
+      sec(`${r.name} — Доля общих расходов`);
+      if (r.c_shared_brig_mgr > 0) row('Бригадир + Менеджер (доля)', '', r.c_shared_brig_mgr);
+      if (r.c_shared_house > 0) row('Жильё (доля)', '', r.c_shared_house);
+      if (r.c_shared_trans > 0) row('Транспорт (доля)', '', r.c_shared_trans);
     }
+    sec(`${r.name} — Операционные`);
+    row(`РСЗ (${rsz_pct}%)`, `${fmtI(r.direct)} ₽ × ${rsz_pct}%`, r.c_rsz);
+    tot(`${r.name} — Расходы итого`, r.total_costs);
+    sec(`${r.name} — Финрез`);
+    row(`Аллокация (${alloc_pct}%)`, '', r.c_alloc);
+    row(`Маржа (${margin_pct}%)`, '', r.c_margin);
+    tot(`${r.name} — Выручка`, r.revenue);
+  });
 
-    // ---------- Основной расчёт ----------
-    let lastCalculation = {}; // храним последние результаты для экспорта
+  $('breakdown_body').innerHTML = rows.map(r => {
+    if (r.sec) return `<tr class="sec"><td colspan="3">${r.sec}</td></tr>`;
+    if (r.tot) return `<tr class="tot"><td colspan="2">${r.l}</td><td>${fmtI(r.v)}</td></tr>`;
+    return `<tr><td>${r.l}</td><td class="bc">${r.b || ''}</td><td>${fmtI(r.v)}</td></tr>`;
+  }).join('');
 
-    function calculateOffer() {
-        const staffPerDay = parseFloat(document.getElementById('staffPerDay').value) || 0;
-        const periodDays = parseFloat(document.getElementById('periodDays').value) || 0;
-        const hoursPerShift = parseFloat(document.getElementById('hoursPerShift').value) || 0;
-        const workDaysWeek = parseFloat(document.getElementById('workDaysWeek').value) || 0;
-        const shiftsPerMonth = parseFloat(document.getElementById('shiftsPerMonth').value) || 0;
-        const coverageRatio = parseFloat(document.getElementById('coverageRatio').value) || 1;
-        const targetMargin = parseFloat(document.getElementById('targetMargin').value) / 100 || 0;
-        const vatRate = parseFloat(document.getElementById('vatRate').value) / 100 || 0;
+  // КП section
+  const city = str('city');
+  const today = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+  $('kp_city').textContent = city;
+  $('kp_date').textContent = today;
+  $('kp_vat_lbl').textContent = vat_pct;
 
-        const salaryHourlyVakhta = parseFloat(document.getElementById('salaryHourlyVakhta').value) || 0;
-        const salaryHourlyLocal = parseFloat(document.getElementById('salaryHourlyLocal').value) || 0;
-        const housingCost = parseFloat(document.getElementById('housingCost').value) || 0;
-        const recruitmentCost = parseFloat(document.getElementById('recruitmentCost').value) || 0;
-        const ticketComp = parseFloat(document.getElementById('ticketComp').value) || 0;
-        const transportMonth = parseFloat(document.getElementById('transportMonth').value) || 0;
-        const foodCost = parseFloat(document.getElementById('foodCost').value) || 0;
-        const lmkCost = parseFloat(document.getElementById('lmkCost').value) || 0;
-        const sizCost = parseFloat(document.getElementById('sizCost').value) || 0;
-        const certCost = parseFloat(document.getElementById('certCost').value) || 0;
+  // Price boxes — one pair per vacancy
+  $('kp_prices').innerHTML = vac_results.map(r => `
+    <div class="price-box main">
+      <div class="vac-label">${escHtml(r.name)}</div>
+      <div class="amount">${fmtM(r.rate_inc)}</div>
+      <div class="plabel">₽/час · с НДС ${vat_pct}%</div>
+    </div>
+    <div class="price-box">
+      <div class="vac-label">${escHtml(r.name)}</div>
+      <div class="amount">${fmtM(r.rate_ex)}</div>
+      <div class="plabel">₽/час · без НДС</div>
+    </div>`).join('');
 
-        const brigadierMonth = parseFloat(document.getElementById('brigadierMonth').value) || 0;
-        const managementMonth = parseFloat(document.getElementById('managementMonth').value) || 0;
-        const indirectPercent = parseFloat(document.getElementById('indirectPercent').value) / 100 || 0;
-        const allocationPercent = parseFloat(document.getElementById('allocationPercent').value) / 100 || 0;
-        const rszPercent = parseFloat(document.getElementById('rszPercent').value) / 100 || 0;
-        const penaltyPercent = parseFloat(document.getElementById('penaltyPercent').value) / 100 || 0;
-        const agentPercent = parseFloat(document.getElementById('agentPercent').value) / 100 || 0;
+  // Vacancy rows in KP table
+  $('kp_vac_rows').innerHTML = vac_results.map((r, i) => `<tr class="${i % 2 === 1 ? '' : ''}">
+    <td><b>${escHtml(r.name)}</b></td>
+    <td>${r.hc}</td>
+    <td>${r.roster}</td>
+    <td>${fmtI(r.client_h)} ч</td>
+    <td>${fmtM(r.rate_ex)} ₽</td>
+    <td><b>${fmtM(r.rate_inc)} ₽</b></td>
+  </tr>`).join('') +
+  `<tr class="highlight-row">
+    <td>ИТОГО</td><td>${total_hc}</td><td>${total_roster}</td>
+    <td>${fmtI(total_client_h)} ч</td><td>—</td>
+    <td><b>${fmtI(total_rev * (1 + vat_pct/100))} ₽ (бюджет)</b></td>
+  </tr>`;
 
-        const totalShifts = staffPerDay * periodDays;
-        const totalHours = totalShifts * hoursPerShift;
-        const avgStaff = staffPerDay;
+  // KP general params
+  const period = `${proj_days} дн. (${dpw} раб. дн./нед.)`;
+  const kpP = [
+    ['Город оказания услуг', city],
+    ['Срок проекта', period],
+    ['Длина смены', `${sh} ч`],
+    ['Общая численность по заявке', `${total_hc} чел./смену`],
+    ['Общий штат (для закрытия заявки)', `${total_roster} чел.`],
+    ['Всего человеко-часов за период', `${fmtI(total_client_h)} ч`],
+    ['Итого выручка за период (без НДС)', `${fmtI(total_rev)} ₽`],
+    ['Итого выручка за период (с НДС)', `${fmtI(total_rev * (1 + vat_pct / 100))} ₽`],
+  ];
+  $('kp_params').innerHTML = kpP.map(([k, v]) =>
+    `<tr><td>${k}</td><td><b>${v}</b></td></tr>`).join('');
 
-        const effectiveHourlySalary = salaryHourlyVakhta * coverageRatio;
-        const totalSalaryCost = effectiveHourlySalary * totalHours;
+  $('kp_note').innerHTML =
+    `Расчёт составлен ${today}. Город: <b>${city}</b>. Срок: <b>${period}</b>. НДС ${vat_pct}%. ` +
+    `Ставки указаны на один человеко-час отработанного времени (смена ${sh} ч). ` +
+    `Штат включает резервный персонал для бесперебойного закрытия заявки. ` +
+    `Бюджет рассчитан на весь срок проекта (${fmtI(total_client_h)} человеко-часов). ` +
+    `<br>По вопросам: <b>+7 (495) 045-98-34</b> · <b>info@sth-corp.ru</b> · <b>sth-corp.ru</b>`;
+}
 
-        const totalHousingCost = housingCost * totalShifts;
-        const totalRecruitmentCost = recruitmentCost * staffPerDay;
-        const totalTicketComp = ticketComp * staffPerDay;
-        const totalTransportCost = transportMonth * avgStaff * (periodDays / 30);
-        const totalFoodCost = foodCost * totalShifts;
-        const totalLmkCost = lmkCost * staffPerDay;
-        const totalSizCost = sizCost * staffPerDay;
-        const totalCertCost = certCost * staffPerDay;
-        const totalBrigadierCost = brigadierMonth * (periodDays / 30);
-        const totalManagementCost = managementMonth * (periodDays / 30);
-        let extraPerHour = extraExpenses.reduce((sum, e) => sum + (e.value || 0), 0);
-        const totalExtraCost = extraPerHour * totalHours;
+// ═══════════════════════════════════════════════════════════════════════
+// HH.ru
+// ═══════════════════════════════════════════════════════════════════════
+const HH_AREA_IDS = {
+  'Москва':1,'Санкт-Петербург':2,'Екатеринбург':3,'Новосибирск':4,
+  'Казань':88,'Нижний Новгород':66,'Самара':78,'Ростов-на-Дону':76,
+  'Уфа':99,'Красноярск':26,'Пермь':72,'Воронеж':18,'Краснодар':53,
+  'Челябинск':104,'Волгоград':24,'Омск':68,'Тюмень':1438,'Барнаул':11,
+  'Иркутск':38,'Владивосток':1679,'Тольятти':78,'Хабаровск':1974,
+};
 
-        let directCosts = totalSalaryCost + totalHousingCost + totalRecruitmentCost + totalTicketComp +
-                          totalTransportCost + totalFoodCost + totalLmkCost + totalSizCost + totalCertCost +
-                          totalBrigadierCost + totalManagementCost + totalExtraCost;
+// ── HH.ru fetch (auto proxy chain, no user setup) ───────────────────────────
+async function hhFetch(hhPath) {
+  const hhUrl = 'https://api.hh.ru' + hhPath;
 
-        const rszCost = totalSalaryCost * rszPercent;
-        const allocationCost = totalSalaryCost * allocationPercent;
-        const indirectCost = directCosts * indirectPercent;
-        let costBase = directCosts + rszCost + allocationCost + indirectCost;
+  // 1. Custom Cloudflare Worker if user configured one
+  const workerBase = (localStorage.getItem('hh_proxy_url') || '').replace(/\/+$/, '');
+  if (workerBase) {
+    const r = await fetch(workerBase + hhPath);
+    if (!r.ok) throw new Error(`HTTP ${r.status} от Worker`);
+    return r.json();
+  }
 
-        let revenueBeforePenaltyAgent = costBase / (1 - targetMargin);
-        const penaltyCost = revenueBeforePenaltyAgent * penaltyPercent;
-        const agentCost = revenueBeforePenaltyAgent * agentPercent;
-        let revenueExVat = revenueBeforePenaltyAgent + penaltyCost + agentCost;
-        const vatAmount = revenueExVat * vatRate;
-        const revenueWithVat = revenueExVat + vatAmount;
-
-        const pricePerHourExVat = revenueExVat / totalHours;
-        const pricePerHourWithVat = revenueWithVat / totalHours;
-        const pricePerShiftExVat = pricePerHourExVat * hoursPerShift;
-        const pricePerShiftWithVat = pricePerHourWithVat * hoursPerShift;
-
-        // Сохраняем для экспорта
-        lastCalculation = {
-            staffPerDay, periodDays, hoursPerShift, workDaysWeek,
-            totalHours, pricePerHourExVat, pricePerHourWithVat,
-            pricePerShiftExVat, pricePerShiftWithVat,
-            revenueExVat, revenueWithVat, vatAmount,
-            actualMargin: ((revenueExVat - costBase)/revenueExVat * 100),
-            targetMarginPercent: targetMargin*100,
-            vatRatePercent: vatRate*100
-        };
-
-        const resultHtml = `
-            <div class="result-box">
-                <div><strong>📌 Всего человеко-часов:</strong> ${totalHours.toLocaleString('ru-RU')}</div>
-                <div><strong>💰 Себестоимость 1 часа (без наценки):</strong> ${(costBase/totalHours).toFixed(2)} ₽</div>
-                <div><strong>🎯 Цена для клиента за 1 час (без НДС):</strong> <span style="font-size:1.4rem;">${pricePerHourExVat.toFixed(2)} ₽</span></div>
-                <div><strong>🧾 Цена за 1 час (с НДС ${(vatRate*100).toFixed(0)}%):</strong> ${pricePerHourWithVat.toFixed(2)} ₽</div>
-                <div><strong>📆 Цена за смену (${hoursPerShift} ч) без НДС:</strong> ${pricePerShiftExVat.toFixed(2)} ₽</div>
-                <div><strong>💵 Общая выручка без НДС:</strong> ${revenueExVat.toLocaleString('ru-RU')} ₽</div>
-                <div><strong>📈 Маржинальность (факт):</strong> ${lastCalculation.actualMargin.toFixed(1)}%</div>
-            </div>
-        `;
-        document.getElementById('resultBlock').innerHTML = resultHtml;
-
-        const offerTable = `
-            <table class="offer-table" id="exportTable">
-                <tr><th>Показатель</th><th>Значение</th></tr>
-                <tr><td>Количество сотрудников в смену</td><td>${staffPerDay} чел.</td></tr>
-                <tr><td>Период оказания услуг</td><td>${periodDays} дней</td></tr>
-                <tr><td>Режим работы</td><td>${hoursPerShift} часов/смена, ${workDaysWeek} дней в неделю</td></tr>
-                <tr><td>Стоимость 1 человеко-часа (без НДС)</td><td><b>${pricePerHourExVat.toFixed(2)} ₽</b></td></tr>
-                <tr><td>Стоимость смены (${hoursPerShift} ч) без НДС</td><td>${pricePerShiftExVat.toFixed(2)} ₽</td></tr>
-                <tr><td>НДС ${(vatRate*100).toFixed(0)}%</td><td>${vatAmount.toLocaleString('ru-RU')} ₽</td></tr>
-                <tr><td><b>Итого к оплате (с НДС)</b></td><td><b>${revenueWithVat.toLocaleString('ru-RU')} ₽</b></td></tr>
-            </table>
-            <div class="note">* В стоимость включено: ФОТ с коэф. обеспеченности, проживание, подбор, проезд, питание, ЛМК, СИЗ, управление, накладные, РСЗ, аллокация, резерв штрафов, агентские и маржа ${(targetMargin*100).toFixed(0)}%.</div>
-        `;
-        document.getElementById('offerPreview').innerHTML = offerTable;
+  // 2. allorigins.win — server-side proxy, no config needed
+  try {
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(hhUrl)}`;
+    const r = await fetch(proxyUrl);
+    if (!r.ok) throw new Error(`allorigins HTTP ${r.status}`);
+    const wrapper = await r.json();
+    if (!wrapper.contents) throw new Error('Пустой ответ');
+    return JSON.parse(wrapper.contents);
+  } catch (e1) {
+    // 3. corsproxy.io fallback
+    try {
+      const r2 = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(hhUrl)}`);
+      if (!r2.ok) throw new Error(`corsproxy HTTP ${r2.status}`);
+      return r2.json();
+    } catch (e2) {
+      throw new Error(`Все прокси недоступны. Попробуйте позже или настройте Cloudflare Worker.`);
     }
+  }
+}
 
-    document.getElementById('calculateBtn').addEventListener('click', calculateOffer);
+function saveProxy() {
+  const v = ($('proxy_url')?.value || '').trim().replace(/\/+$/, '');
+  localStorage.setItem('hh_proxy_url', v);
+  const hint = $('proxy_hint');
+  if (hint) hint.style.color = v ? '#0e9f6e' : '#6b7280';
+}
 
-    // ---------- Экспорт в PDF (через печать) ----------
-    document.getElementById('exportPdfBtn').addEventListener('click', () => {
-        window.print();
-    });
+async function getAreaId(cityName) {
+  const direct = HH_AREA_IDS[cityName];
+  if (direct) return direct;
+  try {
+    const d = await hhFetch(`/suggests/areas?text=${encodeURIComponent(cityName)}`);
+    return d.items?.[0]?.id || null;
+  } catch { return null; }
+}
 
-    // ---------- Экспорт в Excel (XLSX) ----------
-    document.getElementById('exportExcelBtn').addEventListener('click', () => {
-        // Собираем данные для экспорта: параметры + таблица КП
-        const staff = document.getElementById('staffPerDay').value;
-        const days = document.getElementById('periodDays').value;
-        const hoursShift = document.getElementById('hoursPerShift').value;
-        const workDays = document.getElementById('workDaysWeek').value;
-        const margin = document.getElementById('targetMargin').value;
-        const vat = document.getElementById('vatRate').value;
+function showHHSt(id, type, msg) {
+  const el = $(`v${id}_hh_st`);
+  if (!el) return;
+  el.className = `hh-st ${type}`;
+  el.textContent = msg;
+  el.style.display = 'block';
+}
 
-        // Получаем текущую таблицу из offerPreview
-        const tableElem = document.querySelector('#offerPreview table');
-        if (!tableElem) {
-            alert("Сначала рассчитайте коммерческое предложение (кнопка «Рассчитать»).");
-            return;
-        }
+async function searchHH(vacId) {
+  saveVacsFromDOM();
+  const vac = vacs.find(v => v.id === vacId);
+  if (!vac) return;
 
-        // Создаём массив для Excel
-        let data = [];
-        // Заголовок
-        data.push(["Параметры расчёта", ""]);
-        data.push(["Заявка (сотр/сутки)", staff]);
-        data.push(["Период (дней)", days]);
-        data.push(["Часов в смену", hoursShift]);
-        data.push(["Рабочих дней в неделю", workDays]);
-        data.push(["Желаемая маржа (%)", margin]);
-        data.push(["НДС (%)", vat]);
-        data.push([""]);
-        data.push(["КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ", ""]);
-        
-        // Извлекаем строки таблицы
-        const rows = tableElem.querySelectorAll('tr');
-        rows.forEach(row => {
-            const cols = row.querySelectorAll('td, th');
-            const rowData = [];
-            cols.forEach(col => rowData.push(col.innerText));
-            if (rowData.length) data.push(rowData);
-        });
-        
-        // Добавляем итоговую выручку из блока результата
-        const resultDiv = document.getElementById('resultBlock');
-        const resultText = resultDiv.innerText;
-        data.push([""]);
-        data.push(["Детализация результата", ""]);
-        resultText.split('\n').forEach(line => {
-            if (line.trim()) data.push([line.trim(), ""]);
-        });
+  const city      = str('city');
+  const position  = vac.name;
+  const shiftH    = num('shift_hours') || 11;
+  const avgSM     = num('avg_sm') || 15;
 
-        // Создаём книгу и лист
-        const ws = XLSX.utils.aoa_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Коммерческое предложение");
-        // Сохраняем файл
-        XLSX.writeFile(wb, `KP_${new Date().toISOString().slice(0,19)}.xlsx`);
-    });
+  if (!city) { showHHSt(vacId, 'err', 'Укажите город в параметрах проекта'); return; }
 
-    // ---------- Демо-парсинг ----------
-    document.getElementById('parseSalaryBtn').addEventListener('click', () => {
-        const demoDiv = document.getElementById('parsedResult');
-        demoDiv.innerHTML = '⏳ Загрузка демо-данных...';
-        setTimeout(() => {
-            demoDiv.innerHTML = `
-                <div style="background:#fff3e0; border-radius:12px; padding:8px;">
-                    🧾 <strong>Демо-данные (средние по РФ)</strong><br>
-                    📍 Avito: грузчик 45 000–65 000 ₽/мес, комплектовщик 50 000–70 000 ₽/мес<br>
-                    📍 HeadHunter: грузчик 40 000–60 000 ₽/мес, комплектовщик 48 000–68 000 ₽/мес<br>
-                    ⚠️ Для реальных данных разверните бэкенд.
-                </div>
-            `;
-        }, 800);
-    });
+  const btn = $(`v${vacId}_hh_btn`);
+  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+  showHHSt(vacId, 'loading', `Ищу «${position}» в ${city}…`);
 
-    renderExtraExpenses();
-    calculateOffer();
+  const resEl = $(`v${vacId}_hh_res`);
+  if (resEl) resEl.style.display = 'none';
+
+  try {
+    const areaId = await getAreaId(city);
+    if (!areaId) throw new Error(`Город «${city}» не найден в базе HH.ru`);
+
+    const data = await hhFetch(`/vacancies?text=${encodeURIComponent(position)}&area=${areaId}&per_page=50&only_with_salary=true`);
+
+    const items = (data.items || []).filter(i => i.salary && i.salary.currency === 'RUR');
+    if (!items.length) throw new Error('Нет вакансий с зарплатой в рублях по этому запросу');
+
+    // Convert each salary to hourly
+    const hourlyRates = items.map(i => {
+      const sal = i.salary;
+      const mid = (sal.from && sal.to) ? (sal.from + sal.to) / 2 : (sal.from || sal.to || 0);
+      // Determine hours: shift schedule → use our shift_hours; full day → 8h
+      const isShift = ['shift','flyInFlyOut','flexible'].includes(i.schedule?.id);
+      const dayH = isShift ? shiftH : 8;
+      const wdpM = isShift ? avgSM : (num('days_per_week') || 5) * 30 / 7;
+      return mid / (wdpM * dayH);
+    }).filter(r => r > 0);
+
+    hourlyRates.sort((a, b) => a - b);
+    const minR  = hourlyRates[0];
+    const maxR  = hourlyRates[hourlyRates.length - 1];
+    const avgR  = hourlyRates.reduce((s, x) => s + x, 0) / hourlyRates.length;
+    const medR  = hourlyRates[Math.floor(hourlyRates.length / 2)];
+
+    showHHSt(vacId, 'ok', `✓ Найдено ${items.length} вак. с зарплатой`);
+
+    if (resEl) {
+      resEl.style.display = 'block';
+      resEl.innerHTML = `
+        <div class="hh-result-box">
+          <div class="found">Найдено вакансий: <b>${items.length}</b> · «${position}» · ${city}</div>
+          <div class="rates">
+            <div class="rate-item"><div class="rv">${fmtM(minR)}</div><div class="rl">мин ₽/ч</div></div>
+            <div class="rate-item"><div class="rv">${fmtM(medR)}</div><div class="rl">медиана ₽/ч</div></div>
+            <div class="rate-item"><div class="rv">${fmtM(maxR)}</div><div class="rl">макс ₽/ч</div></div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn btn-primary btn-sm" onclick="applyHHRate(${vacId}, ${medR.toFixed(2)})">Применить медиану</button>
+            <button class="btn btn-outline btn-sm"  onclick="applyHHRate(${vacId}, ${avgR.toFixed(2)})">Применить среднюю</button>
+            <button class="btn btn-ghost btn-sm"    onclick="applyHHRate(${vacId}, ${minR.toFixed(2)})">Минимум</button>
+          </div>
+        </div>`;
+    }
+  } catch (e) {
+    showHHSt(vacId, 'err', `Ошибка: ${e.message}. Введите ставку вручную.`);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Подобрать с HH↓'; }
+  }
+}
+
+function applyHHRate(vacId, rate) {
+  const inp = $(`v${vacId}_rt`);
+  if (inp) { inp.value = Math.round(rate); }
+  const vac = vacs.find(v => v.id === vacId);
+  if (vac) vac.rate = Math.round(rate);
+  calc();
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Brigadier recommendation
+// ═══════════════════════════════════════════════════════════════════════
+function applyBrigRec() {
+  saveVacsFromDOM();
+  const shiftH = num('shift_hours') || 11;
+  if (!vacs.length) return;
+  // Weighted average rate across all vacancies
+  const totalHC = vacs.reduce((s, v) => s + v.hc, 0);
+  if (!totalHC) return;
+  const avgRate = vacs.reduce((s, v) => s + v.rate * v.hc, 0) / totalHC;
+  if (!avgRate) { alert('Сначала укажите ставки сотрудников'); return; }
+  // Brigadier works every day: rate × shift_hours × 30 days × 115%
+  const rec = Math.round(avgRate * shiftH * 30 * 1.15);
+  $('brig_sal').value = rec;
+  $('brig_on').checked = true;
+  calc();
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Export — Excel
+// ═══════════════════════════════════════════════════════════════════════
+function exportExcel() {
+  if (typeof XLSX === 'undefined') { alert('Библиотека Excel не загружена. Проверьте интернет-соединение.'); return; }
+  const { vac_results, total_roster, total_hires, total_rev, total_margin,
+          total_client_h, proj_days, dpw, sh, vat_pct } = lastCalc;
+  if (!vac_results) { alert('Сначала выполните расчёт.'); return; }
+
+  const wb = XLSX.utils.book_new();
+  const city = str('city');
+  const today = new Date().toLocaleDateString('ru-RU');
+
+  // ── Sheet 1: КП ──
+  const kpData = [
+    ['STH GROUP — Аутсорсинг персонала'],
+    ['+7 (495) 045-98-34  |  info@sth-corp.ru  |  sth-corp.ru'],
+    [],
+    ['КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ'],
+    ['Аутсорсинг персонала · Складская логистика'],
+    [`Город: ${city}`, '', `Дата: ${today}`],
+    [],
+    ['Вакансия','Заявка (чел./смену)','Штат (закрытие заявки)','Часов за период','Ставка без НДС (₽/ч)','Ставка с НДС (₽/ч)','Бюджет без НДС (₽)'],
+    ...vac_results.map(r => [r.name, r.hc, r.roster, Math.round(r.client_h),
+      +r.rate_ex.toFixed(2), +r.rate_inc.toFixed(2), Math.round(r.revenue)]),
+    ['ИТОГО', vac_results.reduce((s,r)=>s+r.hc,0), total_roster,
+     Math.round(total_client_h), '', '', Math.round(total_rev)],
+    [`ИТОГО с НДС ${vat_pct}%`, '', '', '', '', '', Math.round(total_rev * (1 + vat_pct/100))],
+    [],
+    ['ПАРАМЕТРЫ ПРОЕКТА', ''],
+    ['Город', city],
+    ['Срок проекта (дней)', proj_days],
+    ['Рабочих дней в неделю', dpw],
+    ['Длина смены (ч)', sh],
+    ['Общий штат (для закрытия заявки)', total_roster],
+    ['Всего найм за период', total_hires],
+    ['Итоговая выручка без НДС (₽)', Math.round(total_rev)],
+    [`Итоговая выручка с НДС ${vat_pct}% (₽)`, Math.round(total_rev * (1 + vat_pct / 100))],
+    ['Маржинальная прибыль (₽)', Math.round(total_margin)],
+    [],
+    ['Документ сформирован:', today],
+    ['STH GROUP', 'sth-corp.ru'],
+  ];
+
+  const kpSheet = XLSX.utils.aoa_to_sheet(kpData);
+
+  // Column widths
+  kpSheet['!cols'] = [
+    {wch:30},{wch:18},{wch:22},{wch:18},{wch:20},{wch:20},{wch:22}
+  ];
+
+  // Cell styles (SheetJS community doesn't support full styling, but we can set merges)
+  kpSheet['!merges'] = [
+    {s:{r:0,c:0},e:{r:0,c:6}}, // company name
+    {s:{r:1,c:0},e:{r:1,c:6}}, // contacts
+    {s:{r:3,c:0},e:{r:3,c:6}}, // КП title
+    {s:{r:4,c:0},e:{r:4,c:6}}, // subtitle
+  ];
+
+  XLSX.utils.book_append_sheet(wb, kpSheet, 'КП');
+
+  // ── Sheet 2: Расчёт ──
+  const detRows = [['Статья','База расчёта','Сумма (₽)']];
+  const { rsz_pct, alloc_pct, margin_pct, brig_sal, mgr_sal, house, trans,
+          months, work_days, avg_sm, avg_lt } = lastCalc;
+
+  vac_results.forEach(r => {
+    detRows.push([`=== ${r.name} ===`, '', '']);
+    detRows.push(['ФОТ сотрудников', `${r.v.rate} ₽/ч × ${sh} ч × ${Math.round(r.hc * work_days)} смен`, Math.round(r.c_salary)]);
+    detRows.push(['Подбор', `${r.v.rec} ₽ × ${r.hires} чел.`, Math.round(r.c_rec)]);
+    if (r.v.lmk_on && r.v.lmk) detRows.push(['ЛМК', `${r.v.lmk} ₽ × ${r.hires} чел.`, Math.round(r.lmk_cost)]);
+    if (r.v.siz_on && r.v.siz) detRows.push(['СИЗ и форма', `${r.v.siz} ₽ × ${r.hires} чел.`, Math.round(r.siz_cost)]);
+    if (r.v.trn_on && r.v.trn) detRows.push(['Обучение', `${r.v.trn} ₽ × ${r.hires} чел.`, Math.round(r.trn_cost)]);
+    if (r.c_shared_brig_mgr > 0) detRows.push(['Бригадир+Менеджер (доля)', '', Math.round(r.c_shared_brig_mgr)]);
+    if (r.c_shared_house > 0) detRows.push(['Жильё (доля)', '', Math.round(r.c_shared_house)]);
+    if (r.c_shared_trans > 0) detRows.push(['Транспорт (доля)', '', Math.round(r.c_shared_trans)]);
+    detRows.push([`РСЗ ${rsz_pct}%`, '', Math.round(r.c_rsz)]);
+    detRows.push(['Расходы итого', '', Math.round(r.total_costs)]);
+    detRows.push([`Аллокация ${alloc_pct}%`, '', Math.round(r.c_alloc)]);
+    detRows.push([`Маржа ${margin_pct}%`, '', Math.round(r.c_margin)]);
+    detRows.push(['Выручка', '', Math.round(r.revenue)]);
+    detRows.push(['Ставка без НДС (₽/ч)', '', +r.rate_ex.toFixed(2)]);
+    detRows.push([`Ставка с НДС ${vat_pct}% (₽/ч)`, '', +r.rate_inc.toFixed(2)]);
+    detRows.push(['', '', '']);
+  });
+  detRows.push(['=== ИТОГО ===', '', '']);
+  detRows.push(['Выручка всего', '', Math.round(total_rev)]);
+  detRows.push(['Маржа всего', '', Math.round(total_margin)]);
+  detRows.push(['Штат всего', '', total_roster]);
+  detRows.push(['Найм всего', '', total_hires]);
+
+  const detSheet = XLSX.utils.aoa_to_sheet(detRows);
+  XLSX.utils.book_append_sheet(wb, detSheet, 'Детализация');
+
+  const fname = `КП_${city}_${today.replace(/\./g,'_')}.xlsx`;
+  XLSX.writeFile(wb, fname);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Export — PDF (html2canvas + jsPDF)
+// ═══════════════════════════════════════════════════════════════════════
+async function exportPDF() {
+  if (typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
+    alert('Библиотеки для PDF не загружены. Проверьте интернет-соединение.');
+    return;
+  }
+  const el = $('kp_section');
+  const exportBtn = document.querySelector('.h-actions');
+  if (exportBtn) exportBtn.style.display = 'none';
+
+  try {
+    const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+    const { jsPDF } = window.jspdf;
+    const imgW  = 210;
+    const imgH  = canvas.height * imgW / canvas.width;
+    const doc   = new jsPDF({ orientation: imgH > 297 ? 'p' : 'p', unit: 'mm', format: 'a4' });
+    const img   = canvas.toDataURL('image/jpeg', 0.92);
+
+    let y = 0;
+    while (y < imgH) {
+      if (y > 0) doc.addPage();
+      doc.addImage(img, 'JPEG', 0, -y, imgW, imgH);
+      y += 297;
+    }
+    const city  = str('city');
+    const today = new Date().toLocaleDateString('ru-RU').replace(/\./g, '_');
+    doc.save(`КП_${city}_${today}.pdf`);
+  } finally {
+    if (exportBtn) exportBtn.style.display = 'flex';
+  }
+}
+
+function toggleProxyCard() {
+  const el = $('proxy_advanced');
+  const lbl = $('proxy_toggle_lbl');
+  if (!el) return;
+  const open = el.style.display === 'block';
+  el.style.display = open ? 'none' : 'block';
+  if (lbl) lbl.textContent = open ? 'расширенные настройки ▾' : 'скрыть ▴';
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Init
+// ═══════════════════════════════════════════════════════════════════════
+// Restore proxy URL from localStorage
+(function() {
+  const saved = localStorage.getItem('hh_proxy_url') || '';
+  const inp = $('proxy_url');
+  if (inp && saved) inp.value = saved;
+})();
+
+addVac('Грузчик', 10);
+addVac('Комплектовщик', 5);
+calc();
 </script>
 </body>
 </html>

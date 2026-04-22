@@ -521,7 +521,7 @@ let vacs   = [];       // array of vacancy objects
 let lastCalc = {};     // last calculation result, used by export
 
 function newVac(name = 'Новая вакансия', hc = 10) {
-  return { id: nextId++, name, hc, rate: 220,
+  return { id: nextId++, name, hc, rate: 350,
            rec: 20000, lmk_on: true, lmk: 3500,
            siz_on: true, siz: 5000, trn_on: false, trn: 0 };
 }
@@ -1106,6 +1106,9 @@ async function searchHH(vacId) {
     }
     const removedCount = totalBefore - parsed.length;
 
+    // Сортировка по ставке — от меньшей к большей
+    parsed.sort((a, b) => a.rate - b.rate);
+
     hhLastResults[vacId] = parsed;
     const hourlyRates = parsed.map(v => v.rate).sort((a,b) => a-b);
     const minR = hourlyRates[0];
@@ -1200,8 +1203,11 @@ function applyBrigRec() {
 
 // ═══════════════════════════════════════════════════════════════════════
 // Export — Excel (STH brand: #E62250 / #131313, Space Grotesk)
-// Sheet 1 "КП"    — client-facing summary (static values)
-// Sheet 2 "Расчёт" — formula model (yellow = input, blue = formula)
+// Лист 1 "КП"     — клиентское резюме (статические значения)
+// Лист 2 "Расчёт" — интерактивная таблица вакансий с формулами:
+//   • Жёлтые ячейки (A–G) = ввод: название, ставка, кол-во, стоимости
+//   • Синие ячейки  (H–X) = формулы, пересчитываются автоматически
+//   • 300 строк — добавляйте вакансии, просто заполняя жёлтые ячейки
 // ═══════════════════════════════════════════════════════════════════════
 function exportExcel() {
   if (typeof XLSX === 'undefined') { alert('Библиотека Excel не загружена. Проверьте интернет-соединение.'); return; }
@@ -1307,32 +1313,34 @@ function exportExcel() {
   XLSX.utils.book_append_sheet(wb, ws1, 'КП');
 
   // ════════════════════════════════════════════════════
-  // Sheet 2: Расчёт (fully formula-based model)
-  //   Yellow cells  = editable inputs
-  //   Blue cells    = auto-calculated formulas
+  // Лист 2: Расчёт — строчная таблица (каждая строка = вакансия)
+  //   Параметры сверху (жёлтые, редактируемые)
+  //   300 строк вакансий: жёлтые A–G = ввод, синие H–X = формулы
+  //   Просто заполняйте жёлтые ячейки новых строк — всё пересчитается
   // ════════════════════════════════════════════════════
+  const MAXROWS = 300; // строк с формулами
+  const NC2 = 24;      // колонок A–X
   const ws2 = {}, merge2 = [];
-  const NC2 = N + 2; // A(labels) + N vacancies + ИТОГО
   let r2 = 0;
   const span2  = row      => merge2.push({s:{r:row,c:0},e:{r:row,c:NC2-1}});
   const span2r = (row,c1,c2) => merge2.push({s:{r:row,c:c1},e:{r:row,c:c2}});
   const setRow2 = (ri, cells) => setRow(ws2, ri, cells);
+  const ex = ri => ri + 1; // 0-based → Excel row number
 
-  // ── Header ──
-  setRow2(r2,[cs('STH GROUP — Модель расчёта КП','s',S.hdrDark(13)),...Array(NC2-1).fill(blank(S.hdrDark()))]); span2(r2); r2++;
+  // ── Шапка ──
+  setRow2(r2,[cs('STH GROUP — Расчёт КП','s',S.hdrDark(13)),...Array(NC2-1).fill(blank(S.hdrDark()))]); span2(r2); r2++;
   setRow2(r2,[cs(`${city}   ·   Дата: ${today}`,'s',S.hdrDark(10)),...Array(NC2-1).fill(blank(S.hdrDark()))]); span2(r2); r2++;
 
-  const legY = {font:{bold:true,color:{rgb:'7C6000'},name:FONT,sz:9},fill:{patternType:'solid',fgColor:{rgb:C_YELLOW}},alignment:{horizontal:'center',vertical:'center'},border:bdr(C_YBD)};
-  const legB = {font:{bold:true,color:{rgb:'1E40AF'},name:FONT,sz:9},fill:{patternType:'solid',fgColor:{rgb:C_BLUELT}},alignment:{horizontal:'center',vertical:'center'},border:bdr(C_BBD)};
-  setRow2(r2,[cs('Жёлтые ячейки = ввод данных (можно редактировать)','s',legY),blank(legY),cs('Синие ячейки = формулы (пересчитываются автоматически)','s',legB),...Array(NC2-3).fill(blank(legB))]);
-  span2r(r2,0,1); span2r(r2,2,NC2-1); r2++;
-  r2++; // blank
+  const legY={font:{bold:true,color:{rgb:'7C6000'},name:FONT,sz:9},fill:{patternType:'solid',fgColor:{rgb:C_YELLOW}},alignment:{horizontal:'center',vertical:'center'},border:bdr(C_YBD)};
+  const legB={font:{bold:true,color:{rgb:'1E40AF'},name:FONT,sz:9},fill:{patternType:'solid',fgColor:{rgb:C_BLUELT}},alignment:{horizontal:'center',vertical:'center'},border:bdr(C_BBD)};
+  setRow2(r2,[cs('ЖЁЛТЫЕ ячейки A–G = вводите данные (название, ставка, кол-во, стоимости найма)','s',legY),...Array(5).fill(blank(legY)),cs('СИНИЕ ячейки H–X = формулы, пересчёт автоматический. Добавляйте строки — заполняйте жёлтые ячейки','s',legB),...Array(NC2-7).fill(blank(legB))]);
+  span2r(r2,0,5); span2r(r2,6,NC2-1); r2++;
+  r2++; // отступ
 
-  // ── Parameters block ──
-  setRow2(r2,[cs('ВХОДНЫЕ ПАРАМЕТРЫ','s',S.sec()),blank(S.sec()),...Array(NC2-2).fill({v:'',t:'s'})]); span2r(r2,0,1); r2++;
-  setRow2(r2,[cs('Параметр','s',S.thDark()),cs('Значение','s',S.thDark()),...Array(NC2-2).fill({v:'',t:'s'})]); r2++;
+  // ── Параметры (2 колонки: A=название, B=значение) ──
+  setRow2(r2,[cs('ПАРАМЕТРЫ РАСЧЁТА','s',S.sec()),blank(S.sec()),...Array(NC2-2).fill({v:'',t:'s'})]); span2r(r2,0,1); r2++;
+  setRow2(r2,[cs('Параметр','s',S.thDark()),cs('Значение (жёлтое = редактировать)','s',S.thDark()),...Array(NC2-2).fill({v:'',t:'s'})]); r2++;
 
-  // Track exact row indices for each parameter (used to build formula strings)
   const PR_PROJ=r2; setRow2(r2,[cs('Срок проекта, дней','s',S.cell(false,'left',C_LGRAY)),cn(proj_days,S.inp())]); r2++;
   const PR_DPW =r2; setRow2(r2,[cs('Рабочих дней в неделю','s',S.cell(false,'left',C_WHITE)),cn(dpw,S.inp())]); r2++;
   const PR_SH  =r2; setRow2(r2,[cs('Длина смены, ч','s',S.cell(false,'left',C_LGRAY)),cn(sh,S.inp())]); r2++;
@@ -1348,114 +1356,141 @@ function exportExcel() {
   const PR_HOUS=r2; setRow2(r2,[cs('Жильё, ₽/мес.','s',S.cell(false,'left',C_LGRAY)),cn(house,S.inp())]); r2++;
   const PR_TRAN=r2; setRow2(r2,[cs('Транспорт, ₽/мес.','s',S.cell(false,'left',C_WHITE)),cn(trans,S.inp())]); r2++;
 
-  // Absolute cell references for parameters (column B = index 1)
-  const ex = ri => ri + 1; // 0-based row → Excel row number
-  const PC = 1; // param value column B
-  const rPROJ=`$${CL(PC)}$${ex(PR_PROJ)}`, rDPW=`$${CL(PC)}$${ex(PR_DPW)}`, rSH=`$${CL(PC)}$${ex(PR_SH)}`;
-  const rAVSM=`$${CL(PC)}$${ex(PR_AVSM)}`, rAVLT=`$${CL(PC)}$${ex(PR_AVLT)}`;
-  const rRSZ=`$${CL(PC)}$${ex(PR_RSZ)}`,   rALLC=`$${CL(PC)}$${ex(PR_ALLC)}`, rINDR=`$${CL(PC)}$${ex(PR_INDR)}`;
-  const rMARG=`$${CL(PC)}$${ex(PR_MARG)}`, rVAT=`$${CL(PC)}$${ex(PR_VAT)}`;
-  const rBRIG=`$${CL(PC)}$${ex(PR_BRIG)}`, rMGR=`$${CL(PC)}$${ex(PR_MGR)}`;
-  const rHOUS=`$${CL(PC)}$${ex(PR_HOUS)}`, rTRAN=`$${CL(PC)}$${ex(PR_TRAN)}`;
+  // Абсолютные ссылки на параметры ($B$N)
+  const PC = 1;
+  const rPROJ=`$B$${ex(PR_PROJ)}`, rDPW=`$B$${ex(PR_DPW)}`, rSH=`$B$${ex(PR_SH)}`;
+  const rAVSM=`$B$${ex(PR_AVSM)}`, rAVLT=`$B$${ex(PR_AVLT)}`;
+  const rRSZ=`$B$${ex(PR_RSZ)}`,   rALLC=`$B$${ex(PR_ALLC)}`, rINDR=`$B$${ex(PR_INDR)}`;
+  const rMARG=`$B$${ex(PR_MARG)}`, rVAT=`$B$${ex(PR_VAT)}`;
+  const rBRIG=`$B$${ex(PR_BRIG)}`, rMGR=`$B$${ex(PR_MGR)}`;
+  const rHOUS=`$B$${ex(PR_HOUS)}`, rTRAN=`$B$${ex(PR_TRAN)}`;
 
-  r2++; // blank row before vacancy section
+  r2++; // отступ
 
-  // ── Vacancy section ──
-  setRow2(r2,[cs('ВАКАНСИИ — РАСЧЁТ','s',S.sec()),...Array(NC2-1).fill(blank(S.sec()))]); span2(r2); r2++;
-  setRow2(r2,[cs('Показатель','s',S.thDark()),...vac_results.map(rv=>cs(rv.name,'s',S.thRed())),cs('ИТОГО','s',S.thDark())]); r2++;
+  // ── Шапка таблицы вакансий ──
+  setRow2(r2,[cs(`ТАБЛИЦА ВАКАНСИЙ — ${MAXROWS} строк с формулами (добавляйте позиции в жёлтые ячейки)`,'s',S.sec()),...Array(NC2-1).fill(blank(S.sec()))]); span2(r2); r2++;
 
-  // Pre-define all vacancy row indices BEFORE any rows are built
-  // Inputs (rows 0-5 relative to current r2):
-  const rwRATE=r2+0, rwHC=r2+1, rwREC=r2+2, rwLMK=r2+3, rwSIZ=r2+4, rwTRN=r2+5;
-  // Formulas (rows 6-22 relative to current r2):
-  const rwRSTR=r2+6, rwHIRES=r2+7, rwCLIH=r2+8;
-  const rwFSAL=r2+9, rwHIRE=r2+10, rwBRIGM=r2+11, rwHOUSF=r2+12, rwTRNSF=r2+13;
-  const rwDRCT=r2+14, rwCRSZ=r2+15, rwTCST=r2+16;
-  const rwREV=r2+17, rwCALLC=r2+18, rwCINDR=r2+19, rwCMARG=r2+20;
-  const rwRATEX=r2+21, rwRINCI=r2+22;
+  const colHdrs = [
+    'Вакансия', 'Ставка\n₽/ч', 'Чел./\nсмену', 'Подбор\n₽/чел', 'ЛМК\n₽/чел', 'СИЗ\n₽/чел', 'Обучение\n₽/чел',
+    'Штат\n(текучка)', 'Найм\nза период', 'Кл.часов', 'ФОТ, ₽', 'Привлечение, ₽',
+    'Бриг+Мен, ₽', 'Жильё, ₽', 'Транспорт, ₽', 'Прямые\nрасх., ₽', 'РСЗ, ₽', 'Расходы\nитого, ₽',
+    'Выручка\n(без НДС) ₽', 'Аллокация, ₽', 'Косвенные, ₽', 'Маржа, ₽',
+    'Ставка без\nНДС, ₽/ч', `Ставка с\nНДС ${vat_pct}%, ₽/ч`,
+  ];
+  // Первые 7 — жёлтые (INPUT), остальные 17 — синие (FORMULA)
+  setRow2(r2, colHdrs.map((h,i) => cs(h,'s', i < 7 ? {
+    font:{bold:true,color:{rgb:'7C6000'},name:FONT,sz:9}, fill:{patternType:'solid',fgColor:{rgb:C_YELLOW}},
+    alignment:{horizontal:'center',vertical:'center',wrapText:true}, border:bdr(C_YBD)
+  } : {
+    font:{bold:true,color:{rgb:'1E40AF'},name:FONT,sz:9}, fill:{patternType:'solid',fgColor:{rgb:C_BLUELT}},
+    alignment:{horizontal:'center',vertical:'center',wrapText:true}, border:bdr(C_BBD)
+  }))); r2++;
 
-  // HC range across all vacancy columns: e.g. B25:D25
-  const hcRng = `${CL(1)}${ex(rwHC)}:${CL(N)}${ex(rwHC)}`;
+  // Первая строка вакансий (0-based) и её Excel-номер (1-based)
+  const firstVacRow = r2;
+  const FVR = ex(firstVacRow);               // Excel row первой вакансии
+  const LVR = FVR + MAXROWS - 1;             // Excel row последней
+  const TVEX = LVR + 1;                      // Excel row ИТОГО
+  const hcS  = `SUM($C$${FVR}:$C$${LVR})`; // сумма всех HC для доли бриг/мен
 
-  // Formula factory: returns formula strings for a vacancy in column vc (1-based index)
-  const vf = vc => {
-    const C = CL(vc);
-    return {
-      roster: `CEILING(${C}${ex(rwHC)}*${rDPW}*30/7/${rAVSM},1)`,
-      hires:  `CEILING(${C}${ex(rwHC)}*${rPROJ}*${rDPW}/7/${rAVLT},1)`,
-      clih:   `${C}${ex(rwHC)}*${rSH}*${rPROJ}*${rDPW}/7`,
-      fsal:   `${C}${ex(rwRATE)}*${rSH}*${C}${ex(rwHC)}*${rPROJ}*${rDPW}/7`,
-      hire:   `(${C}${ex(rwREC)}+${C}${ex(rwLMK)}+${C}${ex(rwSIZ)}+${C}${ex(rwTRN)})*${C}${ex(rwHIRES)}`,
-      brigm:  `IF(SUM(${hcRng})>0,(${rBRIG}+${rMGR})*(${rPROJ}/30)*(${C}${ex(rwHC)}/SUM(${hcRng})),0)`,
-      housf:  `${rHOUS}*${C}${ex(rwRSTR)}*(${rPROJ}/30)`,
-      trnsf:  `${rTRAN}*${C}${ex(rwRSTR)}*(${rPROJ}/30)`,
-      drct:   `SUM(${C}${ex(rwFSAL)}:${C}${ex(rwTRNSF)})`,
-      crsz:   `${rRSZ}/100*${C}${ex(rwDRCT)}`,
-      tcst:   `${C}${ex(rwDRCT)}+${C}${ex(rwCRSZ)}`,
-      rev:    `IF(1-(${rALLC}+${rINDR}+${rMARG})/100>0.01,${C}${ex(rwTCST)}/(1-(${rALLC}+${rINDR}+${rMARG})/100),0)`,
-      callc:  `${rALLC}/100*${C}${ex(rwREV)}`,
-      cindr:  `${rINDR}/100*${C}${ex(rwREV)}`,
-      cmarg:  `${rMARG}/100*${C}${ex(rwREV)}`,
-      ratex:  `IF(${C}${ex(rwCLIH)}>0,${C}${ex(rwREV)}/${C}${ex(rwCLIH)},0)`,
-      rinci:  `${C}${ex(rwRATEX)}*(1+${rVAT}/100)`,
-    };
-  };
+  // Стили (кэшируем вне цикла)
+  const SI  = S.inp();            // жёлтый, input
+  const SIA = S.inp('left');      // жёлтый, input, выравнивание влево
+  const SF  = S.fml(false);       // синий, обычный
+  const SFB = S.fml(true);        // синий, жирный
+  const SFR = S.fmlRed();         // красный (выручка)
 
-  // ИТОГО column (N+1) formulas — SUM across all vacancy columns
-  const FC = CL(1), LC = CL(N), TC = CL(N+1);
-  const sumR = rw => `SUM(${FC}${ex(rw)}:${LC}${ex(rw)})`;
-  const tf = {
-    roster:sumR(rwRSTR), hires:sumR(rwHIRES), clih:sumR(rwCLIH),
-    fsal:sumR(rwFSAL),   hire:sumR(rwHIRE),   brigm:sumR(rwBRIGM),
-    housf:sumR(rwHOUSF), trnsf:sumR(rwTRNSF),
-    drct:sumR(rwDRCT),   crsz:sumR(rwCRSZ),   tcst:sumR(rwTCST),
-    rev:sumR(rwREV),     callc:sumR(rwCALLC),  cindr:sumR(rwCINDR), cmarg:sumR(rwCMARG),
-    ratex:`IF(${TC}${ex(rwCLIH)}>0,${TC}${ex(rwREV)}/${TC}${ex(rwCLIH)},0)`,
-    rinci:`${TC}${ex(rwRATEX)}*(1+${rVAT}/100)`,
-  };
+  // Генерация MAXROWS строк вакансий
+  for (let i = 0; i < MAXROWS; i++) {
+    const ri  = firstVacRow + i;
+    const VR  = ex(ri);           // Excel row этой строки
+    const rv  = i < N ? vac_results[i] : null;
+    const bg  = i % 2 === 0 ? C_LGRAY : C_WHITE;
 
-  // Row builders
-  const inpRow = (label, bg, getterFn, totalFml) => {
-    const totCell = totalFml ? cf(totalFml, S.fml(true)) : blank(S.cell(false,'center',bg));
-    setRow2(r2, [cs(label,'s',S.cell(false,'left',bg)), ...vac_results.map(rv=>cn(getterFn(rv),S.inp())), totCell]);
-    r2++;
-  };
-  const fmlRow = (label, bg, key, bold, redAccent) => {
-    const stV = redAccent ? S.fmlRed() : S.fml(bold);
-    const stL = redAccent ? S.cell(true,'left',C_PINK) : S.cell(bold,'left',bg);
-    setRow2(r2, [cs(label,'s',stL), ...vac_results.map((_,i)=>cf(vf(i+1)[key],stV)), cf(tf[key],stV)]);
-    r2++;
-  };
+    // Ячейки ввода (A–G): заполнены для существующих вакансий, пустые для новых
+    const iA = rv ? cs(rv.name,'s',SIA)                          : cs('','s',SIA);
+    const iB = rv ? cn(rv.v.rate, SI)                            : blank(SI);
+    const iC = rv ? cn(rv.hc, SI)                                : blank(SI);
+    const iD = rv ? cn(rv.v.rec, SI)                             : blank(SI);
+    const iE = rv ? cn(rv.v.lmk_on ? rv.v.lmk : 0, SI)         : blank(SI);
+    const iF = rv ? cn(rv.v.siz_on ? rv.v.siz : 0, SI)         : blank(SI);
+    const iG = rv ? cn(rv.v.trn_on ? rv.v.trn : 0, SI)         : blank(SI);
 
-  // Input rows (yellow)
-  inpRow('Ставка сотрудника, ₽/ч на руки',  C_LGRAY, rv=>rv.v.rate,                    null);
-  inpRow('Чел./смену (заявка)',              C_WHITE, rv=>rv.hc,                         sumR(rwHC));
-  inpRow('Стоимость подбора, ₽/чел.',       C_LGRAY, rv=>rv.v.rec,                      null);
-  inpRow('ЛМК (медкнижки), ₽/чел.',        C_WHITE, rv=>rv.v.lmk_on?rv.v.lmk:0,       null);
-  inpRow('СИЗ и форма, ₽/чел.',            C_LGRAY, rv=>rv.v.siz_on?rv.v.siz:0,       null);
-  inpRow('Обучение/допуски, ₽/чел.',        C_WHITE, rv=>rv.v.trn_on?rv.v.trn:0,       null);
+    // Формульные ячейки (H–X): IF(C{VR}="","",формула) — пустая строка даёт пустой результат
+    const g = f => `IF(C${VR}="","",${f})`;
+    const fH = g(`CEILING(C${VR}*${rDPW}*30/7/${rAVSM},1)`);
+    const fI = g(`CEILING(C${VR}*${rPROJ}*${rDPW}/7/${rAVLT},1)`);
+    const fJ = g(`C${VR}*${rSH}*${rPROJ}*${rDPW}/7`);
+    const fK = g(`B${VR}*${rSH}*C${VR}*${rPROJ}*${rDPW}/7`);
+    const fL = g(`(D${VR}+E${VR}+F${VR}+G${VR})*I${VR}`);
+    const fM = g(`IF(${hcS}>0,(${rBRIG}+${rMGR})*(${rPROJ}/30)*(C${VR}/${hcS}),0)`);
+    const fN = g(`${rHOUS}*H${VR}*(${rPROJ}/30)`);
+    const fO = g(`${rTRAN}*H${VR}*(${rPROJ}/30)`);
+    const fP = g(`SUM(K${VR}:O${VR})`);
+    const fQ = g(`${rRSZ}/100*P${VR}`);
+    const fR = g(`P${VR}+Q${VR}`);
+    const fS = g(`IF(1-(${rALLC}+${rINDR}+${rMARG})/100>0.01,R${VR}/(1-(${rALLC}+${rINDR}+${rMARG})/100),0)`);
+    const fT = g(`${rALLC}/100*S${VR}`);
+    const fU = g(`${rINDR}/100*S${VR}`);
+    const fV = g(`${rMARG}/100*S${VR}`);
+    const fW = g(`IF(J${VR}=0,0,S${VR}/J${VR})`);
+    const fX = g(`W${VR}*(1+${rVAT}/100)`);
 
-  // Formula rows (blue)
-  fmlRow('Штат с текучкой, чел.',              C_LGRAY, 'roster', false, false);
-  fmlRow('Найм за период, чел.',               C_WHITE, 'hires',  false, false);
-  fmlRow('Клиентских часов за период',          C_LGRAY, 'clih',   false, false);
-  fmlRow('ФОТ сотрудников, ₽',                C_WHITE, 'fsal',   false, false);
-  fmlRow('Привлечение (найм), ₽',              C_LGRAY, 'hire',   false, false);
-  fmlRow('Доля бригадира+менеджера, ₽',        C_WHITE, 'brigm',  false, false);
-  fmlRow('Доля жилья, ₽',                      C_LGRAY, 'housf',  false, false);
-  fmlRow('Доля транспорта, ₽',                 C_WHITE, 'trnsf',  false, false);
-  fmlRow('Прямые расходы, ₽',                  C_LGRAY, 'drct',   true,  false);
-  fmlRow(`РСЗ (${rsz_pct}%), ₽`,              C_WHITE, 'crsz',   false, false);
-  fmlRow('Расходы итого, ₽',                   C_LGRAY, 'tcst',   true,  false);
-  fmlRow('Выручка (без НДС), ₽',               C_RED,   'rev',    true,  true);
-  fmlRow(`Аллокация (${alloc_pct}%), ₽`,      C_WHITE, 'callc',  false, false);
-  fmlRow(`Косвенные (${indirect_pct}%), ₽`,   C_LGRAY, 'cindr',  false, false);
-  fmlRow(`Маржа (${margin_pct}%), ₽`,         C_WHITE, 'cmarg',  false, false);
-  fmlRow('Ставка клиента без НДС, ₽/ч',        C_LGRAY, 'ratex',  true,  false);
-  fmlRow(`Ставка с НДС ${vat_pct}%, ₽/ч`,    C_WHITE, 'rinci',  true,  false);
+    setRow2(ri, [
+      iA, iB, iC, iD, iE, iF, iG,
+      cf(fH,SF), cf(fI,SF), cf(fJ,SF),
+      cf(fK,SF), cf(fL,SF), cf(fM,SF), cf(fN,SF), cf(fO,SF),
+      cf(fP,SFB), cf(fQ,SF), cf(fR,SFB),
+      cf(fS,SFR),
+      cf(fT,SF), cf(fU,SF), cf(fV,SF),
+      cf(fW,SFB), cf(fX,SFB),
+    ]);
+  }
 
-  ws2['!ref']    = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:r2-1,c:NC2-1}});
-  ws2['!cols']   = [{wch:40}, ...Array(N+1).fill({wch:20})];
+  // ── Строка ИТОГО ──
+  const totRow = firstVacRow + MAXROWS;
+  const sCol = c => `SUM(${CL(c)}$${FVR}:${CL(c)}$${LVR})`;
+  setRow2(totRow, [
+    cs('ИТОГО','s',S.total('left')),
+    blank(S.total()),
+    cf(sCol(2), SFB),   // C — HC
+    blank(S.total()), blank(S.total()), blank(S.total()), blank(S.total()),
+    cf(sCol(7),  SFB), // H — roster
+    cf(sCol(8),  SF),  // I — hires
+    cf(sCol(9),  SF),  // J — client_h
+    cf(sCol(10), SF),  // K — fsal
+    cf(sCol(11), SF),  // L — hire
+    cf(sCol(12), SF),  // M — brigm
+    cf(sCol(13), SF),  // N — house
+    cf(sCol(14), SF),  // O — trans
+    cf(sCol(15), SFB), // P — direct
+    cf(sCol(16), SF),  // Q — rsz
+    cf(sCol(17), SFB), // R — total_costs
+    cf(sCol(18), SFR), // S — revenue
+    cf(sCol(19), SF),  // T — alloc
+    cf(sCol(20), SF),  // U — indirect
+    cf(sCol(21), SF),  // V — margin
+    cf(`IF(${sCol(9)}=0,0,${sCol(18)}/${sCol(9)})`, SFB), // W — rate_ex avg
+    cf(`IF(${sCol(9)}=0,0,${sCol(18)}/${sCol(9)})*(1+${rVAT}/100)`, SFB), // X — rate_inc avg
+  ]);
+
+  // Строка «бюджет клиента с НДС»
+  const vatRow = totRow + 1;
+  setRow2(vatRow, [
+    cs(`Бюджет клиента с НДС ${vat_pct}%`,'s',S.accent('left')),
+    ...Array(NC2-2).fill(blank(S.accent())),
+    cf(`${sCol(18)}*(1+${rVAT}/100)`, SFR),
+  ]);
+  span2r(vatRow, 0, NC2-2);
+
+  ws2['!ref']  = XLSX.utils.encode_range({s:{r:0,c:0}, e:{r:vatRow, c:NC2-1}});
+  ws2['!cols'] = [
+    {wch:30},{wch:10},{wch:9},{wch:11},{wch:10},{wch:10},{wch:11},  // A–G
+    {wch:10},{wch:10},{wch:12},{wch:14},{wch:13},                    // H–L
+    {wch:12},{wch:12},{wch:12},{wch:14},{wch:11},{wch:14},           // M–R
+    {wch:16},{wch:12},{wch:12},{wch:12},{wch:15},{wch:15},           // S–X
+  ];
+  ws2['!rows'] = [{hpt:24},{hpt:16},{hpt:24}]; // шапка
   ws2['!merges'] = merge2;
   XLSX.utils.book_append_sheet(wb, ws2, 'Расчёт');
 
